@@ -707,10 +707,10 @@ function adminBack(){
 
 function renderAdmin(){
   loadP();
-  var av=["👦","👧","🧒","🧑‍🎓","👨‍🎓","👩‍🎓"];
-  var h="";
+  var av=["👦","👧","🧒","👨","👩","🧑"];
+  var h='<div style="color:rgba(255,255,255,0.4);font-size:0.7rem;text-align:right;margin-bottom:6px;">'+profs.length+' Profil(e) gefunden</div>';
   if(profs.length===0){
-    h='<div style="color:#fff;font-size:1rem;font-weight:800;text-align:center;padding:40px 16px;background:rgba(255,255,255,0.06);border-radius:12px;">Noch keine Profile vorhanden.<br><span style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.5);margin-top:8px;display:block;">Zuerst ein Kinderprofil anlegen, dann hier verwalten.</span></div>';
+    h+='<div style="color:#fff;font-size:1rem;font-weight:800;text-align:center;padding:40px 16px;background:rgba(255,255,255,0.06);border-radius:12px;">Noch keine Profile vorhanden.<br><span style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.5);margin-top:8px;display:block;">Zuerst ein Kinderprofil anlegen, dann hier verwalten.</span></div>';
   }
   for(var i=0;i<profs.length;i++){
     var p=profs[i];
