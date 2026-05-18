@@ -248,6 +248,17 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:#fff;font-family:'Nunito',Arial,sans-serif;font-weight:800;font-size:0.85rem;padding:10px 20px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.3);z-index:300;transition:transform 0.3s;white-space:nowrap;}
 .toast.show{transform:translateX(-50%) translateY(0);}
 
+/* ===== ADMIN ===== */
+.admin-scroll{flex:1;overflow-y:auto;background:var(--bg2);}
+.admin-wrap{padding:14px 14px 40px;max-width:660px;margin:0 auto;}
+.admin-title{font-size:1.4rem;font-weight:900;color:#fff;margin:10px 0 10px;}
+.admin-prof-card{background:rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:10px;}
+.admin-prof-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.admin-prof-av{font-size:2rem;flex-shrink:0;}
+.admin-prof-name{font-size:1rem;font-weight:900;color:#fff;}
+.admin-prof-det{font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.5);margin-top:2px;}
+.admin-prof-btns{display:flex;gap:8px;flex-wrap:wrap;}
+
 @keyframes shake{0%,100%{transform:translateX(0);}20%{transform:translateX(-8px);}40%{transform:translateX(8px);}60%{transform:translateX(-5px);}80%{transform:translateX(5px);}}
 #importInput{display:none;}
 @media(max-width:420px){
@@ -285,6 +296,9 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
           <button class="btn btn-ghost-dark" onclick="hideForm()">&#x2715;</button>
         </div>
       </div>
+      <div style="text-align:center;margin-top:14px;padding-bottom:4px;">
+        <button class="btn btn-ghost btn-sm" onclick="showAdminPin()" style="font-size:0.72rem;opacity:0.5;">&#x1F512; Eltern-Bereich</button>
+      </div>
     </div>
   </div>
 
@@ -293,7 +307,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
     <div style="text-align:center;">
       <div style="font-size:2rem;" id="pinAvatar">&#x1F466;</div>
       <div style="font-size:1.2rem;font-weight:900;color:#fff;margin-top:4px;" id="pinName">-</div>
-      <div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.5);">PIN eingeben</div>
+      <div style="font-size:0.75rem;font-weight:700;color:rgba(255,255,255,0.5);" id="pinSubtitle">PIN eingeben</div>
     </div>
     <div class="pin-dots" id="pinDots">
       <div class="pin-dot"></div><div class="pin-dot"></div>
@@ -537,6 +551,20 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
+<!-- ADMIN -->
+<div id="adminScreen" class="screen" style="background:var(--bg2);">
+  <div style="background:var(--bg);padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 2px 8px rgba(0,0,0,0.2);">
+    <button class="btn btn-ghost btn-sm" onclick="adminBack()">&#x2190; Zur&uuml;ck</button>
+    <div style="font-size:1rem;font-weight:900;color:#fff;">&#x1F512; Eltern-Bereich</div>
+  </div>
+  <div class="admin-scroll">
+    <div class="admin-wrap">
+      <div class="admin-title">Profile verwalten</div>
+      <div id="adminList"></div>
+    </div>
+  </div>
+</div>
+
 <div class="bot-nav" id="botNav" style="display:none;">
   <button class="nav-btn active" id="navHome" onclick="goHome()"><span class="ni">&#x1F3E0;</span>Start</button>
   <button class="nav-btn" id="navManage" onclick="goManage()"><span class="ni">&#x1F4DA;</span>&#xDC1C;ben</button>
@@ -568,8 +596,8 @@ function showPinStep(profIdx){
   var p=profs[profIdx];
   document.getElementById("pinAvatar").textContent=PIN_AVATARS[profIdx%PIN_AVATARS.length];
   document.getElementById("pinName").textContent=p.name+" \u00b7 Klasse "+p.cls;
+  document.getElementById("pinSubtitle").textContent="PIN eingeben";
   document.getElementById("pinError").textContent="";
-  // Has PIN?
   if(!p.pin){pinMode="set";document.getElementById("pinSetup").style.display="block";}
   else{pinMode="enter";document.getElementById("pinSetup").style.display="none";}
   updPinDots();
@@ -603,6 +631,29 @@ function updPinDots(){
 }
 
 function checkPin(){
+  if(pinMode==="admin"){
+    var stored=sg("lk_admin_pin");
+    if(!stored){
+      ss("lk_admin_pin",pinBuffer);
+      document.getElementById("pinError").textContent="";
+      document.getElementById("stepPin").style.display="none";
+      document.getElementById("stepProfile").style.display="flex";
+      toast("Admin-PIN gespeichert! ✅");
+      showS("adminScreen");renderAdmin();
+    }else if(pinBuffer===stored){
+      document.getElementById("pinError").textContent="";
+      document.getElementById("stepPin").style.display="none";
+      document.getElementById("stepProfile").style.display="flex";
+      showS("adminScreen");renderAdmin();
+    }else{
+      document.getElementById("pinError").textContent="❌ Falsche PIN. Nochmal versuchen.";
+      pinBuffer="";updPinDots();
+      var pad=document.querySelector(".pin-pad");
+      pad.style.animation="none";
+      setTimeout(function(){pad.style.animation="shake 0.4s ease";},10);
+    }
+    return;
+  }
   var p=profs[pinTarget];
   if(pinMode==="set"){
     // Save PIN and log in
@@ -631,6 +682,69 @@ function doLogin(i){
   document.getElementById("stepPin").style.display="none";
   document.getElementById("stepProfile").style.display="flex";
   goHome();
+}
+
+// ===== ADMIN =====
+function showAdminPin(){
+  pinBuffer="";pinTarget=-1;pinMode="admin";
+  var stored=sg("lk_admin_pin");
+  document.getElementById("pinAvatar").textContent="🔒";
+  document.getElementById("pinName").textContent="Eltern-Bereich";
+  document.getElementById("pinSubtitle").textContent=stored?"Admin-PIN eingeben":"Admin-PIN festlegen";
+  document.getElementById("pinError").textContent="";
+  if(!stored){document.getElementById("pinSetup").style.display="block";}
+  else{document.getElementById("pinSetup").style.display="none";}
+  updPinDots();
+  document.getElementById("stepProfile").style.display="none";
+  document.getElementById("stepPin").style.display="flex";
+}
+
+function adminBack(){
+  showS("loginScreen");
+  document.getElementById("stepPin").style.display="none";
+  document.getElementById("stepProfile").style.display="flex";
+}
+
+function renderAdmin(){
+  var h="";
+  if(profs.length===0){
+    h='<div style="color:rgba(255,255,255,0.5);font-size:0.9rem;font-weight:700;text-align:center;padding:30px 0;">Keine Profile vorhanden.</div>';
+  }
+  for(var i=0;i<profs.length;i++){
+    var p=profs[i];
+    var av=["👦","👧","🧒","🧑‍🎓","👨‍🎓","👩‍🎓"];
+    var pinStatus=p.pin?"PIN gesetzt":"keine PIN";
+    h+='<div class="admin-prof-card">';
+    h+='<div class="admin-prof-top">';
+    h+='<div class="admin-prof-av">'+av[i%av.length]+'</div>';
+    h+='<div><div class="admin-prof-name">'+esc(p.name)+'</div>';
+    h+='<div class="admin-prof-det">Klasse '+p.cls+' &middot; '+(p.xp||0)+' XP &middot; '+pinStatus+'</div></div>';
+    h+='</div>';
+    h+='<div class="admin-prof-btns">';
+    h+='<button class="btn btn-teal btn-sm" onclick="resetProfPin('+i+')">&#x1F504; PIN zurücksetzen</button>';
+    h+='<button class="btn btn-ghost btn-sm" id="delBtn'+i+'" onclick="deleteProf('+i+')">&#x1F5D1; Löschen</button>';
+    h+='</div></div>';
+  }
+  document.getElementById("adminList").innerHTML=h;
+}
+
+function resetProfPin(i){
+  profs[i].pin="";saveP();
+  toast(esc(profs[i].name)+": PIN zurückgesetzt");
+  renderAdmin();
+}
+
+function deleteProf(i){
+  var btn=document.getElementById("delBtn"+i);
+  if(btn.getAttribute("data-confirm")==="1"){
+    profs.splice(i,1);saveP();
+    toast("Profil gelöscht");
+    renderAdmin();
+  }else{
+    btn.innerHTML="Wirklich löschen?";
+    btn.className="btn btn-red btn-sm";
+    btn.setAttribute("data-confirm","1");
+  }
 }
 
 
