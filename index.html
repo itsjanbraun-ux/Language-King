@@ -706,13 +706,14 @@ function adminBack(){
 }
 
 function renderAdmin(){
+  loadP();
+  var av=["👦","👧","🧒","🧑‍🎓","👨‍🎓","👩‍🎓"];
   var h="";
   if(profs.length===0){
-    h='<div style="color:rgba(255,255,255,0.5);font-size:0.9rem;font-weight:700;text-align:center;padding:30px 0;">Keine Profile vorhanden.</div>';
+    h='<div style="color:#fff;font-size:1rem;font-weight:800;text-align:center;padding:40px 16px;background:rgba(255,255,255,0.06);border-radius:12px;">Noch keine Profile vorhanden.<br><span style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.5);margin-top:8px;display:block;">Zuerst ein Kinderprofil anlegen, dann hier verwalten.</span></div>';
   }
   for(var i=0;i<profs.length;i++){
     var p=profs[i];
-    var av=["👦","👧","🧒","🧑‍🎓","👨‍🎓","👩‍🎓"];
     var pinStatus=p.pin?"PIN gesetzt":"keine PIN";
     h+='<div class="admin-prof-card">';
     h+='<div class="admin-prof-top">';
