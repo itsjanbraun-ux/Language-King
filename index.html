@@ -587,6 +587,10 @@ var VE=[
   {en:"extraordinary",de:"au\u00dfergew\u00f6hnlich",unit:5},{en:"promote",de:"Werbung machen",unit:5},{en:"bagpipes",de:"Dudelsack",unit:5},{en:"Look out!",de:"Achtung!",unit:5},{en:"compete in sth.",de:"an etw. teilnehmen",unit:5},{en:"sheepdog",de:"H\u00fctehund",unit:5},{en:"trials",de:"Turnier, Wettkampf",unit:5},{en:"the Highlands",de:"schottisches Hochland",unit:5},{en:"on board",de:"an Bord",unit:5},{en:"yacht",de:"Jacht",unit:5},{en:"wee",de:"klein",unit:5},{en:"isle",de:"(kleine) Insel",unit:5}
 ];
 
+// ===== GLOBALE VARIABLEN =====
+var profs=[];var cp=null;var gs=null;var ls=null;var tIv=null;
+var cLang="latin";var cMode="quiz";var cDir="foreign-de";var mLang="latin";
+
 // ===== PIN SYSTEM =====
 var pinBuffer="";var pinTarget=null;var pinMode="enter"; // "enter" or "set"
 var PIN_AVATARS=["\uD83D\uDC66","\uD83D\uDC67","\uD83E\uDDD2","\uD83E\uDDD1\u200D\uD83C\uDF93","\uD83D\uDC68\u200D\uD83C\uDF93","\uD83D\uDC69\u200D\uD83C\uDF93"];
@@ -706,7 +710,6 @@ function adminBack(){
 }
 
 function renderAdmin(){
-  loadP();
   var av=["👦","👧","🧒","👨","👩","🧑"];
   var h='<div style="color:rgba(255,255,255,0.4);font-size:0.7rem;text-align:right;margin-bottom:6px;">'+profs.length+' Profil(e) gefunden</div>';
   if(profs.length===0){
