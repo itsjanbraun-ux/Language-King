@@ -1065,19 +1065,7 @@ function doLogin(i){
 }
 
 // ===== ADMIN =====
-function showAdminPin(){if(!needParentAuth())return;
-  pinBuffer="";pinTarget=-1;pinMode="admin";
-  var stored=sg("lk_admin_pin");
-  document.getElementById("pinAvatar").textContent="\uD83D\uDD12";
-  document.getElementById("pinName").textContent="Eltern-Bereich";
-  document.getElementById("pinSubtitle").textContent=stored?"Admin-PIN eingeben":"Admin-PIN festlegen";
-  document.getElementById("pinError").textContent="";
-  if(!stored){document.getElementById("pinSetup").style.display="block";}
-  else{document.getElementById("pinSetup").style.display="none";}
-  updPinDots();
-  document.getElementById("stepProfile").style.display="none";
-  document.getElementById("stepPin").style.display="flex";
-}
+function showAdminPin(){goParentManage();}
 
 function adminBack(){
   showS("loginScreen");
