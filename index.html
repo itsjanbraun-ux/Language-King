@@ -793,7 +793,8 @@ function loadVocabFromDB(cb){
 }
 function mapDbProfToLocal(r){
   var old=findLocalProf(r.id,r.name);
-  return{name:r.name||"",cls:r.class_level||"6",xp:r.xp||0,pin:old&&old.pin?old.pin:"",avatar:r.avatar||(old&&old.avatar?old.avatar:""),history:old&&old.history?old.history:[],errors:old&&old.errors?old.errors:{latin:{},english:{}},weeklyMin:old&&old.weeklyMin?old.weeklyMin:0,weekStart:old&&old.weekStart?old.weekStart:wkStart(),_dbid:r.id,_uid:r.user_id||null};
+  var dbPin=r.pin!==undefined&&r.pin!==null?r.pin:(old&&old.pin?old.pin:"");
+  return{name:r.name||"",cls:r.class_level||"6",xp:r.xp||0,pin:dbPin,avatar:r.avatar||(old&&old.avatar?old.avatar:""),history:old&&old.history?old.history:[],errors:old&&old.errors?old.errors:{latin:{},english:{}},weeklyMin:old&&old.weeklyMin?old.weeklyMin:0,weekStart:old&&old.weekStart?old.weekStart:wkStart(),_dbid:r.id,_uid:r.user_id||null};
 }
 function findLocalProf(id,name){
   for(var i=0;i<profs.length;i++){
@@ -804,11 +805,14 @@ function findLocalProf(id,name){
 }
 function loadProfilesFromDB(cb){
   if(!sbReady()){if(cb)cb(false);return;}
-  loadProfilesQuery("id,user_id,name,class_level,xp,avatar",true,cb);
+  loadProfilesQuery("id,user_id,name,class_level,xp,pin,avatar",true,cb);
 }
 function loadProfilesQuery(cols,allowAvatarFallback,cb){
   sb.from("profiles").select(cols).order("created_at",{ascending:true}).then(function(res){
-    if(res.error&&allowAvatarFallback&&isAvatarColumnError(res.error)){loadProfilesQuery("id,user_id,name,class_level,xp",false,cb);return;}
+    if(res.error&&allowAvatarFallback){
+      if(cols.indexOf(",pin")>=0&&isProfileColumnError(res.error,"pin")){loadProfilesQuery(cols.replace(",pin",""),true,cb);toast("PIN-Sync braucht DB-Spalte pin");return;}
+      if(cols.indexOf(",avatar")>=0&&isProfileColumnError(res.error,"avatar")){loadProfilesQuery(cols.replace(",avatar",""),true,cb);toast("Avatar-Sync braucht DB-Spalte avatar");return;}
+    }
     if(res.error){console.log("SB load profiles error",res.error);if(cb)cb(false);return;}
     var rows=res.data||[];if(rows.length===0){if(cb)cb(true);return;}
     if(rows[0].user_id)SB_USER_ID=rows[0].user_id;
@@ -817,13 +821,16 @@ function loadProfilesQuery(cols,allowAvatarFallback,cb){
   });
 }
 function isAvatarColumnError(err){
+  return isProfileColumnError(err,"avatar");
+}
+function isProfileColumnError(err,col){
   var m=err&&err.message?err.message:"";
-  return m.indexOf("avatar")>=0||m.indexOf("column")>=0&&m.indexOf("schema cache")>=0;
+  return m.indexOf(col)>=0||m.indexOf("column")>=0&&m.indexOf("schema cache")>=0;
 }
 function saveProfToDB(p){
   if(!sbReady())return;
   if(!p)return;
-  var payload={name:p.name,class_level:p.cls,xp:p.xp||0,weekly_goal_min:120,avatar:p.avatar||""};
+  var payload={name:p.name,class_level:p.cls,xp:p.xp||0,weekly_goal_min:120,pin:p.pin||"",avatar:p.avatar||""};
   if(p._dbid){
     saveProfPayload(p,payload,true);
   }else{
@@ -834,16 +841,21 @@ function saveProfToDB(p){
 }
 function saveProfPayload(p,payload,allowAvatarFallback){
   sb.from("profiles").update(payload).eq("id",p._dbid).then(function(res){
-    if(res.error&&allowAvatarFallback&&isAvatarColumnError(res.error)){delete payload.avatar;saveProfPayload(p,payload,false);toast("Avatar-Sync braucht DB-Spalte avatar");return;}
+    if(res.error&&allowAvatarFallback&&dropProfileOptionalColumn(payload,res.error)){saveProfPayload(p,payload,true);return;}
     if(res.error)console.log("SB update profile error",res.error);
   });
 }
 function insertProfPayload(p,payload,allowAvatarFallback){
   sb.from("profiles").insert([payload]).select("id").then(function(res){
-    if(res.error&&allowAvatarFallback&&isAvatarColumnError(res.error)){delete payload.avatar;insertProfPayload(p,payload,false);toast("Avatar-Sync braucht DB-Spalte avatar");return;}
+    if(res.error&&allowAvatarFallback&&dropProfileOptionalColumn(payload,res.error)){insertProfPayload(p,payload,true);return;}
     if(res.error){console.log("SB insert profile error",res.error);toast("Profil nur lokal gespeichert");return;}
     if(res.data&&res.data[0]){p._dbid=res.data[0].id;saveP();}
   });
+}
+function dropProfileOptionalColumn(payload,err){
+  if(payload.pin!==undefined&&isProfileColumnError(err,"pin")){delete payload.pin;toast("PIN-Sync braucht DB-Spalte pin");return true;}
+  if(payload.avatar!==undefined&&isProfileColumnError(err,"avatar")){delete payload.avatar;toast("Avatar-Sync braucht DB-Spalte avatar");return true;}
+  return false;
 }
 function delProfFromDB(p){
   if(!sbReady())return;
@@ -1021,7 +1033,7 @@ function checkPin(){
   var p=profs[pinTarget];
   if(pinMode==="set"){
     // Save PIN and log in
-    p.pin=pinBuffer;saveP();
+    p.pin=pinBuffer;saveP();saveProfToDB(p);
     document.getElementById("pinError").textContent="";
     toast("PIN gespeichert! \u2705");
     doLogin(pinTarget);
@@ -1093,7 +1105,7 @@ function renderAdmin(){
 }
 
 function resetProfPin(i){if(!needParentAuth())return;
-  profs[i].pin="";saveP();
+  profs[i].pin="";saveP();saveProfToDB(profs[i]);
   toast(esc(profs[i].name)+": PIN zur\u00FCckgesetzt");
   renderAdmin();
 }
