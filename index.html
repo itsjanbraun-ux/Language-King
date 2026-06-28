@@ -136,6 +136,10 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .wc-hi{font-size:0.68rem;font-weight:900;letter-spacing:1.5px;color:rgba(255,255,255,0.7);}
 .wc-name{font-size:1.7rem;font-weight:900;color:#fff;margin:2px 0;}
 .wc-motto{font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.75);margin-bottom:10px;}
+.wc-profile{display:flex;align-items:center;gap:12px;margin:8px 0 10px;}
+.wc-avatar{flex-shrink:0;}
+.profile-avatar-pick{display:none;grid-template-columns:repeat(5,1fr);gap:7px;margin:10px 0 2px;}
+.profile-avatar-pick.show{display:grid;}
 .wc-lvl{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
 .wc-lvl-badge{font-size:0.75rem;font-weight:900;padding:3px 12px;background:rgba(0,0,0,0.25);color:#fff;border-radius:20px;}
 .wc-xp-bg{flex:1;height:8px;background:rgba(0,0,0,0.2);border-radius:4px;overflow:hidden;}
@@ -316,6 +320,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
           <button class="btn btn-ghost-dark btn-sm" onclick="parentSignup()">Neu</button>
           <button class="btn btn-red btn-sm" onclick="parentLogout()">Logout</button>
         </div>
+        <button class="btn btn-ghost btn-sm" onclick="goParentManage()" style="width:100%;margin-top:8px;">Profile verwalten</button>
         <div id="parAuthMsg" style="margin-top:8px;font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.7);">Nicht angemeldet</div>
         <div id="pwResetBox" style="display:none;margin-top:10px;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px;">
           <div style="font-size:0.75rem;font-weight:900;color:#fff;margin-bottom:8px;">Neues Passwort setzen</div>
@@ -385,8 +390,15 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
     <div class="home-wrap">
       <div class="welcome-card" style="margin-top:14px;">
         <div class="wc-hi">WILLKOMMEN</div>
-        <div class="wc-name" id="wcName">Startklar!</div>
-        <div class="wc-motto" id="wcMotto">W&#228;hle den Modus und leg los!</div>
+        <div class="wc-profile">
+          <div class="wc-avatar" id="wcAvatar"></div>
+          <div style="min-width:0;">
+            <div class="wc-name" id="wcName">Startklar!</div>
+            <div class="wc-motto" id="wcMotto">W&#228;hle den Modus und leg los!</div>
+            <button class="btn btn-ghost btn-sm" onclick="toggleProfileAvatarPick()">Avatar &#228;ndern</button>
+          </div>
+        </div>
+        <div class="profile-avatar-pick" id="profileAvatarPick"></div>
         <div class="wc-lvl">
           <span class="wc-lvl-badge" id="lvlBadge">LEVEL 1 &middot; Anf&#228;nger</span>
           <div class="wc-xp-bg"><div class="wc-xp-fill" id="xpFill" style="width:0%"></div></div>
@@ -1097,9 +1109,17 @@ function cycleProfAvatar(i){if(!needParentAuth())return;
 function deleteProf(i){if(!needParentAuth())return;
   var btn=document.getElementById("delBtn"+i);
   if(btn.getAttribute("data-confirm")==="1"){
-    delProfFromDB(profs[i]);profs.splice(i,1);saveP();
+    var wasCurrent=cp&&cp._i===i;
+    delProfFromDB(profs[i]);profs.splice(i,1);
+    if(wasCurrent){
+      cp=null;
+      document.getElementById("botNav").style.display="none";
+    }else if(cp){
+      for(var p=0;p<profs.length;p++){if(profs[p]===cp){cp._i=p;break;}}
+    }
+    saveP();
     toast("Profil gel\u00F6scht");
-    renderAdmin();
+    renderAdmin();renderP();
   }else{
     btn.innerHTML="Wirklich l\u00F6schen?";
     btn.className="btn btn-red btn-sm";
@@ -1141,6 +1161,28 @@ function renderNewAvatarPick(){
   el.innerHTML=h;
 }
 function setNewAvatar(i){newAvatar=(AVATARS[i]||AVATARS[0]).id;renderNewAvatarPick();}
+function renderProfileAvatarPick(){
+  var el=document.getElementById("profileAvatarPick");if(!el||!cp)return;
+  var cur=cp.avatar||profAvatar(cp,cp._i||0);var h="";
+  for(var i=0;i<AVATARS.length;i++){
+    var cls=AVATARS[i].id===cur?"avatar-btn active":"avatar-btn";
+    h+='<button type="button" class="'+cls+'" onclick="setProfileAvatar('+i+')">'+avatarHtml(AVATARS[i].id,"sm",i)+'<span class="avatar-lbl">'+esc(AVATARS[i].label)+'</span></button>';
+  }
+  el.innerHTML=h;
+}
+function toggleProfileAvatarPick(){
+  var el=document.getElementById("profileAvatarPick");if(!el||!cp)return;
+  renderProfileAvatarPick();
+  if(el.className.indexOf("show")>=0)el.className="profile-avatar-pick";
+  else el.className="profile-avatar-pick show";
+}
+function setProfileAvatar(i){
+  if(!cp)return;
+  cp.avatar=(AVATARS[i]||AVATARS[0]).id;
+  if(cp._i!==undefined)profs[cp._i]=cp;
+  saveP();saveProfToDB(cp);renderProfileAvatarPick();updHome();renderP();
+  toast("Avatar gespeichert");
+}
 function showForm(){if(!needParentAuth())return;newAvatar=AVATARS[profs.length%AVATARS.length].id;renderNewAvatarPick();document.getElementById("newForm").classList.add("show");}
 function hideForm(){document.getElementById("newForm").classList.remove("show");}
 function createProf(){if(!needParentAuth())return;
@@ -1150,6 +1192,7 @@ function createProf(){if(!needParentAuth())return;
   profs.push(np);saveP();saveProfToDB(np);hideForm();document.getElementById("newName").value="";renderP();
 }
 function selP(i){showPinStep(i);}
+function goParentManage(){if(!needParentAuth())return;showS("adminScreen");renderAdmin();}
 function logout(){cp=null;document.getElementById("botNav").style.display="none";document.getElementById("stepPin").style.display="none";document.getElementById("stepProfile").style.display="flex";showS("loginScreen");renderP();}
 function saveCP(){if(cp&&cp._i!==undefined){profs[cp._i]=cp;saveP();saveProfToDB(cp);}}
 
@@ -1167,6 +1210,7 @@ function updHome(){
   var m=["W\u00e4hle den Modus und leg los!","Du schaffst das heute!","Vokabeln machen stark!","Heute wieder ein Profi!"];
   document.getElementById("wcName").textContent="Hallo "+cp.name+"!";
   document.getElementById("wcMotto").textContent=m[Math.floor(Math.random()*m.length)];
+  document.getElementById("wcAvatar").innerHTML=avatarHtml(profAvatar(cp,cp._i||0),"lg",cp._i||0);
   document.getElementById("bnUser").textContent=cp.name+" \u00b7 Kl. "+cp.cls;
   document.getElementById("bnLang").textContent="Kl. "+cp.cls+" \u00b7 "+(cLang==="latin"?"Latein":"Englisch");
   document.getElementById("lvlBadge").textContent="LEVEL "+(lv.n+1)+" \u00b7 "+lv.t;
