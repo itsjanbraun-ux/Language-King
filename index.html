@@ -322,6 +322,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
         </div>
         <button class="btn btn-ghost btn-sm" onclick="goParentManage()" style="width:100%;margin-top:8px;">Profile verwalten</button>
         <div id="parAuthMsg" style="margin-top:8px;font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.7);">Nicht angemeldet</div>
+        <div id="parentManagePanel" style="display:none;margin-top:10px;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px;"></div>
         <div id="pwResetBox" style="display:none;margin-top:10px;border-top:1px solid rgba(255,255,255,0.15);padding-top:10px;">
           <div style="font-size:0.75rem;font-weight:900;color:#fff;margin-bottom:8px;">Neues Passwort setzen</div>
           <input class="inp" type="password" id="newParentPass" placeholder="Neues Passwort" style="margin-bottom:8px;">
@@ -743,6 +744,7 @@ function parentSignup(){
   });
 }
 function parentLogout(){
+  var mp=document.getElementById("parentManagePanel");if(mp)mp.style.display="none";
   if(!sbReady()){SB_USER_ID=null;PARENT_AUTH=false;syncParentAuthUI();toast("Eltern abgemeldet");return;}
   console.log("parentLogout click");
   toast("Logout laeuft...");
@@ -1073,7 +1075,7 @@ function adminBack(){
   document.getElementById("stepProfile").style.display="flex";
 }
 
-function renderAdmin(){
+function buildAdminHtml(){
   var h='<div style="color:rgba(255,255,255,0.4);font-size:0.7rem;text-align:right;margin-bottom:6px;">'+profs.length+' Profil(e) gefunden</div>';
   if(PROFILE_LOAD_MSG){
     h+='<div style="color:#fff;font-size:0.82rem;font-weight:800;text-align:center;margin-bottom:10px;padding:10px 12px;background:rgba(249,115,22,0.22);border:1px solid rgba(249,115,22,0.45);border-radius:10px;">'+esc(PROFILE_LOAD_MSG)+'</div>';
@@ -1096,7 +1098,12 @@ function renderAdmin(){
     h+='<button class="btn btn-ghost btn-sm" id="delBtn'+i+'" onclick="deleteProf('+i+')">&#x1F5D1; L&#x00F6;schen</button>';
     h+='</div></div>';
   }
-  document.getElementById("adminList").innerHTML=h;
+  return h;
+}
+function renderAdmin(){
+  var h=buildAdminHtml();
+  var a=document.getElementById("adminList");if(a)a.innerHTML=h;
+  var p=document.getElementById("parentManagePanel");if(p&&p.style.display!=="none")p.innerHTML=h;
 }
 
 function resetProfPin(i){if(!needParentAuth())return;
@@ -1200,12 +1207,14 @@ function createProf(){if(!needParentAuth())return;
 }
 function selP(i){showPinStep(i);}
 function goParentManage(){if(!needParentAuth())return;
-  showS("adminScreen");
-  var el=document.getElementById("adminList");
-  if(el)el.innerHTML='<div style="color:#fff;font-size:1rem;font-weight:800;text-align:center;padding:40px 16px;background:rgba(255,255,255,0.06);border-radius:12px;">Profile werden geladen...</div>';
+  showS("loginScreen");
+  document.getElementById("stepPin").style.display="none";
+  document.getElementById("stepProfile").style.display="flex";
+  var el=document.getElementById("parentManagePanel");
+  if(el){el.style.display="block";el.innerHTML='<div style="color:#fff;font-size:1rem;font-weight:800;text-align:center;padding:24px 16px;background:rgba(255,255,255,0.06);border-radius:12px;">Profile werden geladen...</div>';}
   loadProfilesFromDB(function(){renderAdmin();});
 }
-function logout(){cp=null;document.getElementById("botNav").style.display="none";document.getElementById("stepPin").style.display="none";document.getElementById("stepProfile").style.display="flex";showS("loginScreen");renderP();}
+function logout(){cp=null;document.getElementById("botNav").style.display="none";document.getElementById("stepPin").style.display="none";document.getElementById("stepProfile").style.display="flex";var p=document.getElementById("parentManagePanel");if(p)p.style.display="none";showS("loginScreen");renderP();}
 function saveCP(){if(cp&&cp._i!==undefined){profs[cp._i]=cp;saveP();saveProfToDB(cp);}}
 
 function getLvl(xp){
