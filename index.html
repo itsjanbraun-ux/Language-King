@@ -647,6 +647,7 @@ var dbVoc={latin:null,english:null};
 var SB_USER_ID=null;
 var PARENT_AUTH=false;
 var PW_RECOVERY=false;
+var PROFILE_LOAD_MSG="";
 function sbReady(){
   if(sb)return true;
   console.log("Supabase nicht verfuegbar, lokale Daten werden genutzt");
@@ -813,11 +814,12 @@ function loadProfilesQuery(cols,allowAvatarFallback,cb){
       if(cols.indexOf(",pin")>=0&&isProfileColumnError(res.error,"pin")){loadProfilesQuery(cols.replace(",pin",""),true,cb);toast("PIN-Sync braucht DB-Spalte pin");return;}
       if(cols.indexOf(",avatar")>=0&&isProfileColumnError(res.error,"avatar")){loadProfilesQuery(cols.replace(",avatar",""),true,cb);toast("Avatar-Sync braucht DB-Spalte avatar");return;}
     }
-    if(res.error){console.log("SB load profiles error",res.error);if(cb)cb(false);return;}
+    if(res.error){PROFILE_LOAD_MSG="Profile konnten nicht aus Supabase geladen werden";console.log("SB load profiles error",res.error);if(cb)cb(false);return;}
     var rows=res.data||[];
-    if(rows.length===0){profs=[];saveP();renderP();if(cb)cb(true);return;}
+    if(rows.length===0){PROFILE_LOAD_MSG="Keine Supabase-Profile gefunden. Lokale Profile werden angezeigt.";renderP();if(cb)cb(true);return;}
     if(rows[0].user_id)SB_USER_ID=rows[0].user_id;
     var next=[];for(var i=0;i<rows.length;i++)next.push(mapDbProfToLocal(rows[i]));
+    PROFILE_LOAD_MSG="";
     profs=next;saveP();renderP();if(cb)cb(true);
   });
 }
@@ -1084,8 +1086,11 @@ function adminBack(){
 
 function renderAdmin(){
   var h='<div style="color:rgba(255,255,255,0.4);font-size:0.7rem;text-align:right;margin-bottom:6px;">'+profs.length+' Profil(e) gefunden</div>';
+  if(PROFILE_LOAD_MSG){
+    h+='<div style="color:#fff;font-size:0.82rem;font-weight:800;text-align:center;margin-bottom:10px;padding:10px 12px;background:rgba(249,115,22,0.22);border:1px solid rgba(249,115,22,0.45);border-radius:10px;">'+esc(PROFILE_LOAD_MSG)+'</div>';
+  }
   if(profs.length===0){
-    h+='<div style="color:#fff;font-size:1rem;font-weight:800;text-align:center;padding:40px 16px;background:rgba(255,255,255,0.06);border-radius:12px;">Noch keine Profile vorhanden.<br><span style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.5);margin-top:8px;display:block;">Zuerst ein Kinderprofil anlegen, dann hier verwalten.</span></div>';
+    h+='<div style="color:#fff;font-size:1rem;font-weight:800;text-align:center;padding:40px 16px;background:rgba(255,255,255,0.06);border-radius:12px;">Noch keine Profile sichtbar.<br><span style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.5);margin-top:8px;display:block;">Bitte pruefen, ob der Elternlogin aktiv ist und ob Supabase Profile lesen darf.</span></div>';
   }
   for(var i=0;i<profs.length;i++){
     var p=profs[i];
@@ -1549,6 +1554,18 @@ function pad(n){return n<10?"0"+n:""+n;}
 function wkStart(){var d=new Date();d.setHours(0,0,0,0);var day=d.getDay();d.setDate(d.getDate()-day+(day===0?-6:1));return d.toISOString().slice(0,10);}
 function chkWk(){var ws=wkStart();if(cp.weekStart!==ws){cp.weeklyMin=0;cp.weekStart=ws;saveCP();}}
 function toast(msg){var t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(function(){t.classList.remove("show");},2500);}
+function showFatalStartup(msg){
+  var ls=document.getElementById("loginScreen");
+  if(ls){
+    forceLoginBootstrap();
+    var box=document.createElement("div");
+    box.style.cssText="max-width:680px;margin:14px auto 0;padding:12px 14px;background:rgba(220,38,38,0.18);border:1px solid rgba(220,38,38,0.45);border-radius:12px;color:#fff;font-weight:800;text-align:center;";
+    box.innerHTML="App-Startfehler: "+esc(msg||"Unbekannter Fehler");
+    ls.appendChild(box);
+  }
+}
+window.addEventListener("error",function(e){showFatalStartup(e&&e.message?e.message:"Fehler");});
+window.addEventListener("unhandledrejection",function(e){var r=e&&e.reason?e.reason:{};showFatalStartup(r.message||String(r));});
 
 document.addEventListener("keydown",function(e){
   var qv=document.getElementById("quizV2");if(!qv||qv.style.display==="none")return;
