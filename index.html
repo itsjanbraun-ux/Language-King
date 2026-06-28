@@ -716,7 +716,7 @@ function parentLogin(){
   toast("Login laeuft...");setParentAuthMsg("Login laeuft...");
   sb.auth.signInWithPassword({email:em,password:pw}).then(function(res){
     if(res.error){var msg=authErrMsg(res.error);toast(msg);setParentAuthMsg(msg);console.log("parentLogin",res.error);return;}
-    SB_USER_ID=res.data&&res.data.user?res.data.user.id:null;PARENT_AUTH=!!SB_USER_ID;syncParentAuthUI();loadProfilesFromDB();renderP();toast("Eltern angemeldet");
+    SB_USER_ID=res.data&&res.data.user?res.data.user.id:null;PARENT_AUTH=!!SB_USER_ID;syncParentAuthUI();loadProfilesFromDB(function(){renderP();if(document.getElementById("adminScreen").classList.contains("active"))renderAdmin();});toast("Eltern angemeldet");
   }).catch(function(err){
     console.log("parentLogin catch",err);
     var msg=authErrMsg(err);toast(msg);setParentAuthMsg(msg);
@@ -814,7 +814,8 @@ function loadProfilesQuery(cols,allowAvatarFallback,cb){
       if(cols.indexOf(",avatar")>=0&&isProfileColumnError(res.error,"avatar")){loadProfilesQuery(cols.replace(",avatar",""),true,cb);toast("Avatar-Sync braucht DB-Spalte avatar");return;}
     }
     if(res.error){console.log("SB load profiles error",res.error);if(cb)cb(false);return;}
-    var rows=res.data||[];if(rows.length===0){if(cb)cb(true);return;}
+    var rows=res.data||[];
+    if(rows.length===0){profs=[];saveP();renderP();if(cb)cb(true);return;}
     if(rows[0].user_id)SB_USER_ID=rows[0].user_id;
     var next=[];for(var i=0;i<rows.length;i++)next.push(mapDbProfToLocal(rows[i]));
     profs=next;saveP();renderP();if(cb)cb(true);
@@ -1204,7 +1205,12 @@ function createProf(){if(!needParentAuth())return;
   profs.push(np);saveP();saveProfToDB(np);hideForm();document.getElementById("newName").value="";renderP();
 }
 function selP(i){showPinStep(i);}
-function goParentManage(){if(!needParentAuth())return;showS("adminScreen");renderAdmin();}
+function goParentManage(){if(!needParentAuth())return;
+  showS("adminScreen");
+  var el=document.getElementById("adminList");
+  if(el)el.innerHTML='<div style="color:#fff;font-size:1rem;font-weight:800;text-align:center;padding:40px 16px;background:rgba(255,255,255,0.06);border-radius:12px;">Profile werden geladen...</div>';
+  loadProfilesFromDB(function(){renderAdmin();});
+}
 function logout(){cp=null;document.getElementById("botNav").style.display="none";document.getElementById("stepPin").style.display="none";document.getElementById("stepProfile").style.display="flex";showS("loginScreen");renderP();}
 function saveCP(){if(cp&&cp._i!==undefined){profs[cp._i]=cp;saveP();saveProfToDB(cp);}}
 
