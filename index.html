@@ -308,9 +308,6 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
           <button class="btn btn-ghost-dark" onclick="hideForm()">&#x2715;</button>
         </div>
       </div>
-      <div style="text-align:center;margin-top:14px;padding-bottom:4px;">
-        <button class="btn btn-ghost btn-sm" onclick="showAdminPin()" style="font-size:0.72rem;opacity:0.5;">&#x1F512; Eltern-Bereich</button>
-      </div>
       <div style="margin-top:10px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:10px;">
         <div style="font-size:0.75rem;font-weight:900;color:#fff;margin-bottom:8px;">Eltern-Login (E-Mail)</div>
         <input class="inp" type="email" id="parEmail" placeholder="E-Mail" style="margin-bottom:8px;">
@@ -954,6 +951,7 @@ function renderHistoryV2(h){
 
 // ===== PIN SYSTEM =====
 var pinBuffer="";var pinTarget=null;var pinMode="enter"; // "enter" or "set"
+var delProfConfirm=null;
 
 function profAvatar(p,i){
   if(p&&p.avatar)return p.avatar;
@@ -1092,10 +1090,15 @@ function buildAdminHtml(){
     h+='<div><div class="admin-prof-name">'+esc(p.name)+'</div>';
     h+='<div class="admin-prof-det">Klasse '+p.cls+' &middot; '+(p.xp||0)+' XP &middot; '+pinStatus+'</div></div>';
     h+='</div>';
+    h+='<div style="display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center;margin-bottom:10px;">';
+    h+='<div style="font-size:0.72rem;font-weight:900;color:rgba(255,255,255,0.65);">Klasse</div>';
+    h+='<select class="inp" style="padding:7px 10px;font-size:0.82rem;" onchange="setProfClass('+i+',this.value)">';
+    for(var c=5;c<=10;c++){h+='<option value="'+c+'"'+(String(p.cls)===String(c)?" selected":"")+'>Klasse '+c+'</option>';}
+    h+='</select></div>';
     h+='<div class="admin-prof-btns">';
     h+='<button class="btn btn-ghost btn-sm" onclick="cycleProfAvatar('+i+')">&#x1F464; Avatar</button>';
     h+='<button class="btn btn-teal btn-sm" onclick="resetProfPin('+i+')">&#x1F504; PIN zur&#x00FC;cksetzen</button>';
-    h+='<button class="btn btn-ghost btn-sm" id="delBtn'+i+'" onclick="deleteProf('+i+')">&#x1F5D1; L&#x00F6;schen</button>';
+    h+='<button class="btn '+(delProfConfirm===i?"btn-red":"btn-ghost")+' btn-sm" onclick="deleteProf('+i+')">'+(delProfConfirm===i?"Wirklich l&#x00F6;schen?":"&#x1F5D1; L&#x00F6;schen")+'</button>';
     h+='</div></div>';
   }
   return h;
@@ -1107,12 +1110,23 @@ function renderAdmin(){
 }
 
 function resetProfPin(i){if(!needParentAuth())return;
+  delProfConfirm=null;
   profs[i].pin="";saveP();saveProfToDB(profs[i]);
   toast(esc(profs[i].name)+": PIN zur\u00FCckgesetzt");
   renderAdmin();
 }
 
+function setProfClass(i,v){if(!needParentAuth())return;
+  delProfConfirm=null;
+  profs[i].cls=String(v);
+  if(cp&&cp._i===i)cp.cls=profs[i].cls;
+  saveP();saveProfToDB(profs[i]);renderAdmin();renderP();
+  if(cp&&cp._i===i)updHome();
+  toast("Klasse gespeichert");
+}
+
 function cycleProfAvatar(i){if(!needParentAuth())return;
+  delProfConfirm=null;
   var p=profs[i];var cur=p.avatar||profAvatar(p,i);var n=0;
   for(var a=0;a<AVATARS.length;a++){if(AVATARS[a].id===cur){n=a+1;break;}}
   p.avatar=AVATARS[n%AVATARS.length].id;
@@ -1121,10 +1135,10 @@ function cycleProfAvatar(i){if(!needParentAuth())return;
 }
 
 function deleteProf(i){if(!needParentAuth())return;
-  var btn=document.getElementById("delBtn"+i);
-  if(btn.getAttribute("data-confirm")==="1"){
+  if(delProfConfirm===i){
     var wasCurrent=cp&&cp._i===i;
     delProfFromDB(profs[i]);profs.splice(i,1);
+    delProfConfirm=null;
     if(wasCurrent){
       cp=null;
       document.getElementById("botNav").style.display="none";
@@ -1135,9 +1149,8 @@ function deleteProf(i){if(!needParentAuth())return;
     toast("Profil gel\u00F6scht");
     renderAdmin();renderP();
   }else{
-    btn.innerHTML="Wirklich l\u00F6schen?";
-    btn.className="btn btn-red btn-sm";
-    btn.setAttribute("data-confirm","1");
+    delProfConfirm=i;
+    renderAdmin();
   }
 }
 
