@@ -977,6 +977,7 @@ function showPinStep(profIdx){
   document.getElementById("pinName").textContent=p.name+" \u00b7 Klasse "+p.cls;
   document.getElementById("pinSubtitle").textContent="PIN eingeben";
   document.getElementById("pinError").textContent="";
+  if(p&&p.pin!==undefined&&p.pin!==null)p.pin=String(p.pin);
   if(!p.pin){pinMode="set";document.getElementById("pinSetup").style.display="block";}
   else{pinMode="enter";document.getElementById("pinSetup").style.display="none";}
   updPinDots();
@@ -1041,7 +1042,7 @@ function checkPin(){
     toast("PIN gespeichert! \u2705");
     doLogin(pinTarget);
   }else{
-    if(pinBuffer===p.pin){
+    if(String(pinBuffer)===String(p.pin||"")){
       document.getElementById("pinError").textContent="";
       doLogin(pinTarget);
     }else{
@@ -1573,9 +1574,26 @@ document.addEventListener("keydown",function(e){
   if(e.key==="Escape")doCancel();
 });
 
-loadP();renderP();showS("loginScreen");document.getElementById("stepProfile").style.display="flex";document.getElementById("stepPin").style.display="none";loadVocabFromDB(function(ok){if(ok&&cp)updUnitSel();});initAuthWatcher();initSbUser(function(ok){if(ok)loadProfilesFromDB();});initPasswordRecoveryUI();
-forceLoginBootstrap();
-setTimeout(ensureVisibleScreen,0);
+function bootApp(){
+  try{
+    forceLoginBootstrap();
+    loadP();
+    renderP();
+    showS("loginScreen");
+    document.getElementById("stepProfile").style.display="flex";
+    document.getElementById("stepPin").style.display="none";
+    loadVocabFromDB(function(ok){if(ok&&cp)updUnitSel();});
+    initAuthWatcher();
+    initSbUser(function(ok){if(ok)loadProfilesFromDB();});
+    initPasswordRecoveryUI();
+    forceLoginBootstrap();
+    setTimeout(ensureVisibleScreen,0);
+  }catch(err){
+    console.log("bootApp error",err);
+    showFatalStartup(err&&err.message?err.message:String(err));
+  }
+}
+bootApp();
 window.addEventListener("load",function(){if(!cp)forceLoginBootstrap();setTimeout(ensureVisibleScreen,50);});
 </script>
 </body>
