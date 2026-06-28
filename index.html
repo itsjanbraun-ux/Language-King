@@ -113,16 +113,20 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .prof-item{background:rgba(255,255,255,0.1);border:2px solid rgba(255,255,255,0.15);border-radius:12px;padding:14px 8px;text-align:center;cursor:pointer;transition:all 0.12s;}
 .prof-item:hover{background:rgba(255,255,255,0.18);border-color:rgba(255,255,255,0.3);}
 .prof-item.selected{border-color:var(--orange);background:rgba(249,115,22,0.2);}
-.prof-av{font-size:2.2rem;display:block;margin-bottom:4px;}
+.prof-av{display:block;margin:0 auto 5px;}
+.avatar-face{width:52px;height:52px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:1rem;font-weight:900;border:3px solid rgba(255,255,255,0.85);box-shadow:0 5px 13px rgba(0,0,0,0.25),inset 0 6px 12px rgba(255,255,255,0.22);text-shadow:0 1px 4px rgba(0,0,0,0.25);}
+.avatar-face.sm{width:42px;height:42px;font-size:0.82rem;border-width:2px;}
+.avatar-face.lg{width:66px;height:66px;font-size:1.15rem;}
 .prof-name{font-size:0.82rem;font-weight:800;color:#fff;}
 .prof-lvl{font-size:0.65rem;font-weight:700;color:rgba(255,255,255,0.55);margin-top:1px;}
 .add-prof{border-style:dashed;border-color:rgba(255,255,255,0.2);}
 .add-prof:hover{border-color:var(--teal);}
 .new-form{display:none;flex-direction:column;gap:8px;}
 .new-form.show{display:flex;}
-.avatar-pick{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;}
-.avatar-btn{font-size:1.45rem;line-height:1;background:var(--card2);border:2px solid var(--border);border-radius:10px;padding:8px 0;cursor:pointer;}
+.avatar-pick{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;}
+.avatar-btn{background:var(--card2);border:2px solid var(--border);border-radius:10px;padding:8px 4px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;min-height:82px;}
 .avatar-btn.active{border-color:var(--orange);background:rgba(249,115,22,0.18);}
+.avatar-lbl{font-size:0.58rem;font-weight:900;color:var(--text2);line-height:1.05;text-align:center;}
 
 /* ===== HOME ===== */
 .home-scroll{flex:1;overflow-y:auto;padding:14px 14px 90px;}
@@ -257,7 +261,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .admin-title{font-size:1.4rem;font-weight:900;color:#fff;margin:10px 0 10px;}
 .admin-prof-card{background:rgba(255,255,255,0.08);border-radius:12px;padding:14px;margin-bottom:10px;}
 .admin-prof-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
-.admin-prof-av{font-size:2rem;flex-shrink:0;}
+.admin-prof-av{flex-shrink:0;}
 .admin-prof-name{font-size:1rem;font-weight:900;color:#fff;}
 .admin-prof-det{font-size:0.72rem;font-weight:700;color:rgba(255,255,255,0.5);margin-top:2px;}
 .admin-prof-btns{display:flex;gap:8px;flex-wrap:wrap;}
@@ -611,8 +615,17 @@ var VE=[
 // ===== GLOBALE VARIABLEN =====
 var profs=[];var cp=null;var gs=null;var ls=null;var tIv=null;
 var cLang="latin";var cMode="quiz";var cDir="foreign-de";var mLang="latin";
-var AVATARS=["\uD83D\uDC66","\uD83D\uDC67","\uD83E\uDDD2","\uD83E\uDDD1","\uD83D\uDC68","\uD83D\uDC69","\uD83E\uDDD1\u200D\uD83C\uDF93","\uD83E\uDDD9","\uD83E\uDD34","\uD83D\uDC78","\uD83E\uDD77","\uD83D\uDE80"];
-var newAvatar=AVATARS[0];
+var AVATARS=[
+  {id:"adv_f",abbr:"AB",label:"Abenteurerin",bg:"linear-gradient(145deg,#b85bd5,#f49ac0)"},
+  {id:"exp_f",abbr:"EN",label:"Entdeckerin",bg:"linear-gradient(145deg,#12a6a2,#7dd8c7)"},
+  {id:"hero_m",abbr:"WH",label:"Wissensheld",bg:"linear-gradient(145deg,#2563eb,#60a5fa)"},
+  {id:"strat_m",abbr:"ST",label:"Strategist",bg:"linear-gradient(145deg,#0f766e,#86efac)"},
+  {id:"foxy",abbr:"FX",label:"Clever Foxy",bg:"linear-gradient(145deg,#f97316,#f9a8d4)"},
+  {id:"panda",abbr:"PA",label:"Panda Pal",bg:"linear-gradient(145deg,#6d28d9,#c084fc)"},
+  {id:"owl",abbr:"OW",label:"Professor Owl",bg:"linear-gradient(145deg,#0ea5e9,#94a3b8)"},
+  {id:"leo",abbr:"KL",label:"King Leo",bg:"linear-gradient(145deg,#f59e0b,#2563eb)"}
+];
+var newAvatar=AVATARS[0].id;
 var SB_URL="https://awuxvrkdyorsevwadbbg.supabase.co";
 var SB_KEY="sb_publishable_JUy0iGw4U3jQXYiT_Wu0qg_BGyq9Bu0";
 var sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_KEY):null;
@@ -913,13 +926,25 @@ var pinBuffer="";var pinTarget=null;var pinMode="enter"; // "enter" or "set"
 
 function profAvatar(p,i){
   if(p&&p.avatar)return p.avatar;
+  return AVATARS[i%AVATARS.length].id;
+}
+function avatarById(id,i){
+  for(var a=0;a<AVATARS.length;a++){if(AVATARS[a].id===id)return AVATARS[a];}
   return AVATARS[i%AVATARS.length];
+}
+function avatarHtml(id,size,i){
+  var a=avatarById(id,i);var cls="avatar-face";
+  if(size)cls+=" "+size;
+  return '<span class="'+cls+'" title="'+esc(a.label)+'" style="background:'+a.bg+'">'+esc(a.abbr)+'</span>';
+}
+function avatarLabel(id,i){
+  return avatarById(id,i).label;
 }
 
 function showPinStep(profIdx){
   pinTarget=profIdx;pinBuffer="";
   var p=profs[profIdx];
-  document.getElementById("pinAvatar").textContent=profAvatar(p,profIdx);
+  document.getElementById("pinAvatar").innerHTML=avatarHtml(profAvatar(p,profIdx),"lg",profIdx);
   document.getElementById("pinName").textContent=p.name+" \u00b7 Klasse "+p.cls;
   document.getElementById("pinSubtitle").textContent="PIN eingeben";
   document.getElementById("pinError").textContent="";
@@ -1040,7 +1065,7 @@ function renderAdmin(){
     var pinStatus=p.pin?"PIN gesetzt":"keine PIN";
     h+='<div class="admin-prof-card">';
     h+='<div class="admin-prof-top">';
-    h+='<div class="admin-prof-av">'+profAvatar(p,i)+'</div>';
+    h+='<div class="admin-prof-av">'+avatarHtml(profAvatar(p,i),"sm",i)+'</div>';
     h+='<div><div class="admin-prof-name">'+esc(p.name)+'</div>';
     h+='<div class="admin-prof-det">Klasse '+p.cls+' &middot; '+(p.xp||0)+' XP &middot; '+pinStatus+'</div></div>';
     h+='</div>';
@@ -1061,8 +1086,8 @@ function resetProfPin(i){if(!needParentAuth())return;
 
 function cycleProfAvatar(i){if(!needParentAuth())return;
   var p=profs[i];var cur=p.avatar||profAvatar(p,i);var n=0;
-  for(var a=0;a<AVATARS.length;a++){if(AVATARS[a]===cur){n=a+1;break;}}
-  p.avatar=AVATARS[n%AVATARS.length];
+  for(var a=0;a<AVATARS.length;a++){if(AVATARS[a].id===cur){n=a+1;break;}}
+  p.avatar=AVATARS[n%AVATARS.length].id;
   if(cp&&cp._i===i)cp.avatar=p.avatar;
   saveP();saveProfToDB(p);renderAdmin();renderP();
 }
@@ -1099,7 +1124,7 @@ function renderP(){
   var h="";
   for(var i=0;i<profs.length;i++){
     var p=profs[i];var lv=getLvl(p.xp||0);
-    h+='<div class="prof-item" onclick="selP('+i+')"><span class="prof-av">'+profAvatar(p,i)+'</span><div class="prof-name">'+esc(p.name)+'</div><div class="prof-lvl">Kl. '+p.cls+' &middot; Lv.'+(lv.n+1)+'</div></div>';
+    h+='<div class="prof-item" onclick="selP('+i+')"><span class="prof-av">'+avatarHtml(profAvatar(p,i),"",i)+'</span><div class="prof-name">'+esc(p.name)+'</div><div class="prof-lvl">Kl. '+p.cls+' &middot; Lv.'+(lv.n+1)+'</div></div>';
   }
   h+='<div class="prof-item add-prof" onclick="showForm()"><span class="prof-av" style="font-size:1.8rem;color:rgba(255,255,255,0.4);">&#x2795;</span><div class="prof-name" style="color:rgba(255,255,255,0.4);">Neu</div></div>';
   g.innerHTML=h;
@@ -1108,13 +1133,13 @@ function renderNewAvatarPick(){
   var el=document.getElementById("newAvatarPick");if(!el)return;
   var h="";
   for(var i=0;i<AVATARS.length;i++){
-    var cls=AVATARS[i]===newAvatar?"avatar-btn active":"avatar-btn";
-    h+='<button type="button" class="'+cls+'" onclick="setNewAvatar('+i+')">'+AVATARS[i]+'</button>';
+    var cls=AVATARS[i].id===newAvatar?"avatar-btn active":"avatar-btn";
+    h+='<button type="button" class="'+cls+'" onclick="setNewAvatar('+i+')">'+avatarHtml(AVATARS[i].id,"sm",i)+'<span class="avatar-lbl">'+esc(AVATARS[i].label)+'</span></button>';
   }
   el.innerHTML=h;
 }
-function setNewAvatar(i){newAvatar=AVATARS[i]||AVATARS[0];renderNewAvatarPick();}
-function showForm(){if(!needParentAuth())return;newAvatar=AVATARS[profs.length%AVATARS.length];renderNewAvatarPick();document.getElementById("newForm").classList.add("show");}
+function setNewAvatar(i){newAvatar=(AVATARS[i]||AVATARS[0]).id;renderNewAvatarPick();}
+function showForm(){if(!needParentAuth())return;newAvatar=AVATARS[profs.length%AVATARS.length].id;renderNewAvatarPick();document.getElementById("newForm").classList.add("show");}
 function hideForm(){document.getElementById("newForm").classList.remove("show");}
 function createProf(){if(!needParentAuth())return;
   var n=document.getElementById("newName").value.trim();if(!n){toast("Name eingeben!");return;}
