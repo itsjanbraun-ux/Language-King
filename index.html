@@ -568,8 +568,10 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
     <div class="manage-wrap">
       <div class="manage-title">&#x1F4DA; Vokabeln</div>
       <div style="font-size:0.8rem;font-weight:700;color:rgba(255,255,255,0.5);margin-bottom:9px;" id="vocInfo"></div>
+      <div style="font-size:0.75rem;font-weight:800;color:#fbbf24;margin-bottom:9px;display:none;" id="vocScopeInfo"></div>
       <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;">
-        <button class="btn btn-teal btn-sm" onclick="document.getElementById('importInput').click()">&#x1F4E5; Import</button>
+        <button class="btn btn-teal btn-sm" onclick="appendImport=0;document.getElementById('importInput').click()">&#x1F4E5; Ersetzen</button>
+        <button class="btn btn-ghost btn-sm" onclick="appendImport=1;document.getElementById('importInput').click()">&#x2795; Erg&auml;nzen</button>
         <button class="btn btn-ghost btn-sm" onclick="exportVoc()">&#x1F4E4; Export</button>
         <button class="btn btn-ghost btn-sm" onclick="resetVoc()">&#x21BB; Reset</button>
       </div>
@@ -577,7 +579,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
         <button class="tog active" id="mLatBtn" onclick="setManLang('latin')">Latein</button>
         <button class="tog" id="mEngBtn" onclick="setManLang('english')">Englisch</button>
       </div>
-      <input type="file" id="importInput" accept=".json" onchange="importVoc(event)">
+      <input type="file" id="importInput" accept=".json,.csv,.txt" onchange="importVoc(event)">
       <div style="background:rgba(255,255,255,0.06);border-radius:12px;padding:12px;max-height:52vh;overflow-y:auto;">
         <div id="vocList"></div>
       </div>
@@ -642,6 +644,10 @@ var SB_URL="https://awuxvrkdyorsevwadbbg.supabase.co";
 var SB_KEY="sb_publishable_JUy0iGw4U3jQXYiT_Wu0qg_BGyq9Bu0";
 var sb=(window.supabase&&window.supabase.createClient)?window.supabase.createClient(SB_URL,SB_KEY):null;
 var dbVoc={latin:null,english:null};
+var dbVocBySet={};
+var dbVocSets={latin:[],english:[]};
+var VOC_SCHEMA_MSG="";
+var appendImport=0;
 var SB_USER_ID=null;
 var PARENT_AUTH=false;
 var PW_RECOVERY=false;
@@ -777,24 +783,50 @@ function needParentAuth(){
 }
 function loadVocabFromDB(cb){
   if(!sbReady()){if(cb)cb(false);return;}
-  sb.from("vocab_items").select("language,unit,foreign_word,german_word").then(function(res){
+  loadVocabSetsFromDB(function(){
+    loadVocabItemsFromDB("language,unit,foreign_word,german_word,set_id,vocab_set_id",true,cb);
+  });
+}
+function loadVocabSetsFromDB(cb){
+  if(!sbReady()){if(cb)cb(false);return;}
+  sb.from("vocab_sets").select("id,user_id,profile_id,name,language,class_level,book").then(function(res){
+    dbVocSets={latin:[],english:[]};
+    if(res.error){VOC_SCHEMA_MSG="Supabase-Vokabelsets fehlen noch. Upload bleibt lokal, bis das SQL-Schema eingespielt ist.";console.log("SB load vocab sets error",res.error);if(cb)cb(false);return;}
+    var rows=res.data||[];
+    for(var i=0;i<rows.length;i++){
+      var r=rows[i];var l=r.language==="english"?"english":"latin";
+      dbVocSets[l].push({id:r.id,name:r.name||"",lang:l,cls:r.class_level||"",book:r.book||"",profile_id:r.profile_id||"",user_id:r.user_id||""});
+    }
+    if(cb)cb(true);
+  });
+}
+function loadVocabItemsFromDB(cols,allowSetFallback,cb){
+  sb.from("vocab_items").select(cols).then(function(res){
+    if(res.error&&allowSetFallback&&isVocabSetColumnError(res.error)){loadVocabItemsFromDB("language,unit,foreign_word,german_word",false,cb);return;}
     if(res.error){console.log("SB load vocab error",res.error);if(cb)cb(false);return;}
     var rows=res.data||[];var lat=[];var eng=[];
+    dbVocBySet={};
     for(var i=0;i<rows.length;i++){
       var r=rows[i];
       var x={en:r.foreign_word,de:r.german_word,unit:r.unit||1};
-      if(r.language==="latin")lat.push(x);
-      if(r.language==="english")eng.push(x);
+      var setId=r.set_id||r.vocab_set_id||"";
+      if(setId){if(!dbVocBySet[setId])dbVocBySet[setId]=[];dbVocBySet[setId].push(x);}
+      if(!setId&&r.language==="latin")lat.push(x);
+      if(!setId&&r.language==="english")eng.push(x);
     }
     if(lat.length>0)dbVoc.latin=lat;
     if(eng.length>0)dbVoc.english=eng;
     if(cb)cb(true);
   });
 }
+function isVocabSetColumnError(err){
+  var m=err&&err.message?err.message:"";
+  return m.indexOf("set_id")>=0||m.indexOf("vocab_set_id")>=0||m.indexOf("schema cache")>=0;
+}
 function mapDbProfToLocal(r){
   var old=findLocalProf(r.id,r.name);
   var dbPin=r.pin!==undefined&&r.pin!==null?r.pin:(old&&old.pin?old.pin:"");
-  return{name:r.name||"",cls:r.class_level||"6",xp:r.xp||0,pin:dbPin,avatar:r.avatar||(old&&old.avatar?old.avatar:""),history:old&&old.history?old.history:[],errors:old&&old.errors?old.errors:{latin:{},english:{}},weeklyMin:old&&old.weeklyMin?old.weeklyMin:0,weekStart:old&&old.weekStart?old.weekStart:wkStart(),_dbid:r.id,_uid:r.user_id||null};
+  return{name:r.name||"",cls:r.class_level||"6",xp:r.xp||0,pin:dbPin,avatar:r.avatar||(old&&old.avatar?old.avatar:""),vocabSets:{latin:r.latin_vocab_set_id||(old&&old.vocabSets?old.vocabSets.latin:"")||"",english:r.english_vocab_set_id||(old&&old.vocabSets?old.vocabSets.english:"")||""},history:old&&old.history?old.history:[],errors:old&&old.errors?old.errors:{latin:{},english:{}},weeklyMin:old&&old.weeklyMin?old.weeklyMin:0,weekStart:old&&old.weekStart?old.weekStart:wkStart(),_dbid:r.id,_uid:r.user_id||null};
 }
 function findLocalProf(id,name){
   for(var i=0;i<profs.length;i++){
@@ -805,13 +837,14 @@ function findLocalProf(id,name){
 }
 function loadProfilesFromDB(cb){
   if(!sbReady()){if(cb)cb(false);return;}
-  loadProfilesQuery("id,user_id,name,class_level,xp,pin,avatar",true,cb);
+  loadProfilesQuery("id,user_id,name,class_level,xp,pin,avatar,latin_vocab_set_id,english_vocab_set_id",true,cb);
 }
 function loadProfilesQuery(cols,allowAvatarFallback,cb){
   sb.from("profiles").select(cols).order("created_at",{ascending:true}).then(function(res){
     if(res.error&&allowAvatarFallback){
       if(cols.indexOf(",pin")>=0&&isProfileColumnError(res.error,"pin")){loadProfilesQuery(cols.replace(",pin",""),true,cb);toast("PIN-Sync braucht DB-Spalte pin");return;}
       if(cols.indexOf(",avatar")>=0&&isProfileColumnError(res.error,"avatar")){loadProfilesQuery(cols.replace(",avatar",""),true,cb);toast("Avatar-Sync braucht DB-Spalte avatar");return;}
+      if(cols.indexOf(",latin_vocab_set_id")>=0&&(isProfileColumnError(res.error,"latin_vocab_set_id")||isProfileColumnError(res.error,"english_vocab_set_id"))){loadProfilesQuery(cols.replace(",latin_vocab_set_id","").replace(",english_vocab_set_id",""),true,cb);toast("Profil-Vokabelsets brauchen DB-Spalten");return;}
     }
     if(res.error){PROFILE_LOAD_MSG="Profile konnten nicht aus Supabase geladen werden";console.log("SB load profiles error",res.error);if(cb)cb(false);return;}
     var rows=res.data||[];
@@ -833,6 +866,10 @@ function saveProfToDB(p){
   if(!sbReady())return;
   if(!p)return;
   var payload={name:p.name,class_level:p.cls,xp:p.xp||0,weekly_goal_min:120,pin:p.pin||"",avatar:p.avatar||""};
+  if(p.vocabSets){
+    payload.latin_vocab_set_id=p.vocabSets.latin||null;
+    payload.english_vocab_set_id=p.vocabSets.english||null;
+  }
   if(p._dbid){
     saveProfPayload(p,payload,true);
   }else{
@@ -857,6 +894,7 @@ function insertProfPayload(p,payload,allowAvatarFallback){
 function dropProfileOptionalColumn(payload,err){
   if(payload.pin!==undefined&&isProfileColumnError(err,"pin")){delete payload.pin;toast("PIN-Sync braucht DB-Spalte pin");return true;}
   if(payload.avatar!==undefined&&isProfileColumnError(err,"avatar")){delete payload.avatar;toast("Avatar-Sync braucht DB-Spalte avatar");return true;}
+  if(payload.latin_vocab_set_id!==undefined&&(isProfileColumnError(err,"latin_vocab_set_id")||isProfileColumnError(err,"english_vocab_set_id"))){delete payload.latin_vocab_set_id;delete payload.english_vocab_set_id;toast("Profil-Vokabelsets brauchen DB-Spalten");return true;}
   return false;
 }
 function delProfFromDB(p){
@@ -1163,9 +1201,41 @@ function ss(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 function loadP(){var d=sg("lk_p");profs=d?JSON.parse(d):[];}
 function saveP(){ss("lk_p",JSON.stringify(profs));}
 function getV(l){
+  var profSetId=getProfileVocabSetId(l);
+  if(profSetId&&dbVocBySet[profSetId]&&dbVocBySet[profSetId].length>0)return dbVocBySet[profSetId].slice();
+  var pk=profileVocabKey(l);
+  var pc=pk?sg(pk):null;
+  if(pc){try{return JSON.parse(pc);}catch(e){}}
+  var classSet=findClassVocabSet(l);
+  if(classSet&&dbVocBySet[classSet.id]&&dbVocBySet[classSet.id].length>0)return dbVocBySet[classSet.id].slice();
   if(dbVoc[l]&&dbVoc[l].length>0)return dbVoc[l].slice();
   var c=sg("lk_v_"+l);
   return c?JSON.parse(c):(l==="latin"?VL.slice():VE.slice());
+}
+function profKey(p){
+  if(!p)return "";
+  if(p._dbid)return "db_"+p._dbid;
+  return "local_"+String(p.name||"profil").replace(/[^a-zA-Z0-9_-]/g,"_")+"_"+String(p.cls||"");
+}
+function profileVocabKey(l){return cp?"lk_v_"+profKey(cp)+"_"+l:"";}
+function getProfileVocabSetId(l){
+  if(!cp)return "";
+  if(!cp.vocabSets)cp.vocabSets={latin:"",english:""};
+  return cp.vocabSets[l]||"";
+}
+function setProfileVocabSetId(l,id){
+  if(!cp)return;
+  if(!cp.vocabSets)cp.vocabSets={latin:"",english:""};
+  cp.vocabSets[l]=id||"";
+  if(cp._i!==undefined&&profs[cp._i])profs[cp._i].vocabSets=cp.vocabSets;
+  saveP();saveProfToDB(cp);
+}
+function findClassVocabSet(l){
+  var sets=dbVocSets[l]||[];
+  if(!cp)return null;
+  for(var i=0;i<sets.length;i++){if(sets[i].profile_id&&cp._dbid&&sets[i].profile_id===cp._dbid)return sets[i];}
+  for(var j=0;j<sets.length;j++){if(String(sets[j].cls)===String(cp.cls)&&!sets[j].profile_id)return sets[j];}
+  return null;
 }
 
 function renderP(){
@@ -1215,7 +1285,7 @@ function hideForm(){document.getElementById("newForm").classList.remove("show");
 function createProf(){if(!needParentAuth())return;
   var n=document.getElementById("newName").value.trim();if(!n){toast("Name eingeben!");return;}
   var c=document.getElementById("newClass").value;
-  var np={name:n,cls:c,avatar:newAvatar,xp:0,history:[],errors:{latin:{},english:{}},weeklyMin:0,weekStart:wkStart()};
+  var np={name:n,cls:c,avatar:newAvatar,vocabSets:{latin:"",english:""},xp:0,history:[],errors:{latin:{},english:{}},weeklyMin:0,weekStart:wkStart()};
   profs.push(np);saveP();saveProfToDB(np);hideForm();document.getElementById("newName").value="";renderP();
 }
 function selP(i){showPinStep(i);}
@@ -1489,6 +1559,7 @@ function goManage(){showS("manageScreen");setNav("navManage");renderManage();}
 function setManLang(l){mLang=l;document.getElementById("mLatBtn").classList.toggle("active",l==="latin");document.getElementById("mEngBtn").classList.toggle("active",l==="english");renderManage();}
 function renderManage(){
   var v=getV(mLang);document.getElementById("vocInfo").textContent=v.length+" Vokabeln \u00b7 "+(mLang==="latin"?"Latein":"Englisch");
+  renderVocabScopeInfo(v.length);
   var u={};for(var i=0;i<v.length;i++){var x=v[i].unit||0;if(!u[x])u[x]=[];u[x].push(v[i]);}
   var sk=Object.keys(u).sort(function(a,b){return a-b;});var lb=mLang==="latin"?"Lektion":"Unit";var h="";
   for(var j=0;j<sk.length;j++){
@@ -1497,20 +1568,104 @@ function renderManage(){
   }
   document.getElementById("vocList").innerHTML=h;
 }
+function renderVocabScopeInfo(cnt){
+  var el=document.getElementById("vocScopeInfo");if(!el)return;
+  var txt="";var setId=getProfileVocabSetId(mLang);var pk=profileVocabKey(mLang);
+  if(setId&&dbVocBySet[setId])txt="Profil-Vokabelset aktiv: "+cnt+" W\u00f6rter werden f\u00fcr "+cp.name+" verwendet.";
+  else if(pk&&sg(pk))txt="Lokales Profil-Vokabelset aktiv: nur auf diesem Ger\u00e4t gespeichert.";
+  else{var cs=findClassVocabSet(mLang);if(cs)txt="Klassen-Set aktiv: "+(cs.name||("Klasse "+cp.cls));}
+  if(!txt)txt="Standard-Vokabeln aktiv. Import ersetzt nur die Vokabeln dieses Profils.";
+  if(VOC_SCHEMA_MSG)txt+=" "+VOC_SCHEMA_MSG;
+  el.textContent=txt;el.style.display="";
+}
 function importVoc(ev){
   var f=ev.target.files[0];if(!f)return;
   var r=new FileReader();r.onload=function(e){
     try{
-      var d=JSON.parse(e.target.result);
-      if(Array.isArray(d)&&d.length>0&&d[0].en&&d[0].de){
-        for(var i=0;i<d.length;i++){if(!d[i].unit)d[i].unit=1;}
-        ss("lk_v_"+mLang,JSON.stringify(d));toast(d.length+" Vokabeln importiert!");renderManage();updUnitSel();
+      var d=parseVocabImport(e.target.result,f.name);
+      if(d.length>0){
+        var cur=appendImport?getV(mLang):[];
+        var merged=appendImport?mergeVoc(cur,d):d;
+        saveProfileVocab(mLang,merged,appendImport?true:false);
       }else toast("Falsches Format!");
     }catch(err){toast("Lesefehler!");}
-  };r.readAsText(f);ev.target.value="";
+  };r.readAsText(f);ev.target.value="";appendImport=0;
 }
-function exportVoc(){var v=getV(mLang);var b=new Blob([JSON.stringify(v,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=mLang+"_vokabeln.json";a.click();toast("Exportiert!");}
-function resetVoc(){if(confirm("Vokabeln zur\u00fccksetzen?")){try{localStorage.removeItem("lk_v_"+mLang);}catch(e){}renderManage();updUnitSel();toast("Zur\u00fcckgesetzt!");}}
+function parseVocabImport(txt,name){
+  var data=null;
+  if((name||"").toLowerCase().indexOf(".csv")>0||txt.indexOf("\n")>=0&&txt.indexOf(",")>=0&&txt.charAt(0)!=="["){
+    data=parseCsvVocab(txt);
+  }else data=JSON.parse(txt);
+  if(!Array.isArray(data))return [];
+  var out=[];
+  for(var i=0;i<data.length;i++){
+    var r=data[i]||{};var en=r.en||r.foreign_word||r.latein||r.englisch||r.word||r.vokabel;
+    var de=r.de||r.german_word||r.deutsch||r.translation||r.bedeutung;
+    if(en&&de)out.push({en:String(en).trim(),de:String(de).trim(),unit:r.unit||r.lektion||r.lesson||1});
+  }
+  return out;
+}
+function parseCsvVocab(txt){
+  var lines=txt.replace(/\r/g,"").split("\n");var rows=[];var head=null;
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i];if(!line||!line.trim())continue;
+    var parts=splitCsvLine(line);
+    if(!head){head=[];for(var h=0;h<parts.length;h++)head.push(parts[h].toLowerCase().trim());continue;}
+    var obj={};for(var j=0;j<head.length;j++)obj[head[j]]=parts[j]||"";
+    rows.push(obj);
+  }
+  return rows;
+}
+function splitCsvLine(line){
+  var out=[];var cur="";var q=false;
+  for(var i=0;i<line.length;i++){
+    var ch=line.charAt(i);
+    if(ch==='"'){if(q&&line.charAt(i+1)==='"'){cur+='"';i++;}else q=!q;}
+    else if((ch===","||ch===";")&&!q){out.push(cur.trim());cur="";}
+    else cur+=ch;
+  }
+  out.push(cur.trim());return out;
+}
+function mergeVoc(a,b){
+  var seen={};var out=[];
+  function add(x){var k=String(x.en).toLowerCase()+"|"+String(x.unit||1);if(seen[k])return;seen[k]=true;out.push(x);}
+  for(var i=0;i<a.length;i++)add(a[i]);
+  for(var j=0;j<b.length;j++)add(b[j]);
+  return out;
+}
+function saveProfileVocab(l,data,isAppend){
+  if(!cp){toast("Bitte zuerst Profil w\u00e4hlen");return;}
+  for(var i=0;i<data.length;i++){if(!data[i].unit)data[i].unit=1;}
+  var key=profileVocabKey(l);if(key)ss(key,JSON.stringify(data));
+  syncProfileVocabToDB(l,data,function(ok){
+    renderManage();updUnitSel();
+    toast(data.length+" Vokabeln "+(isAppend?"gespeichert":"importiert")+(ok?" und synchronisiert":" lokal gespeichert"));
+  });
+}
+function syncProfileVocabToDB(l,data,cb){
+  if(!sbReady()||!PARENT_AUTH||!cp||!cp._dbid||!SB_USER_ID){VOC_SCHEMA_MSG="Ohne aktiven Elternlogin bleibt der Upload lokal.";if(cb)cb(false);return;}
+  var setId=getProfileVocabSetId(l);
+  if(setId){replaceVocabSetItems(setId,l,data,cb);return;}
+  var name=(cp.name||"Profil")+" "+(l==="latin"?"Latein":"Englisch")+" Vokabeln";
+  var payload={user_id:SB_USER_ID,profile_id:cp._dbid,name:name,language:l,class_level:cp.cls||"",book:""};
+  sb.from("vocab_sets").insert([payload]).select("id").then(function(res){
+    if(res.error){VOC_SCHEMA_MSG="Supabase-Sync braucht Tabelle vocab_sets.";console.log("SB insert vocab set error",res.error);if(cb)cb(false);return;}
+    if(!res.data||!res.data[0]||!res.data[0].id){if(cb)cb(false);return;}
+    setId=res.data[0].id;setProfileVocabSetId(l,setId);replaceVocabSetItems(setId,l,data,cb);
+  });
+}
+function replaceVocabSetItems(setId,l,data,cb){
+  sb.from("vocab_items").delete().eq("set_id",setId).then(function(delRes){
+    if(delRes.error&&isVocabSetColumnError(delRes.error)){VOC_SCHEMA_MSG="Supabase-Sync braucht Spalte vocab_items.set_id.";console.log("SB delete vocab items error",delRes.error);if(cb)cb(false);return;}
+    var rows=[];for(var i=0;i<data.length;i++)rows.push({set_id:setId,language:l,unit:data[i].unit||1,foreign_word:data[i].en,german_word:data[i].de});
+    sb.from("vocab_items").insert(rows).then(function(insRes){
+      if(insRes.error){VOC_SCHEMA_MSG="Supabase-Sync der Vokabeln fehlgeschlagen.";console.log("SB insert vocab items error",insRes.error);if(cb)cb(false);return;}
+      dbVocBySet[setId]=data.slice();if(cb)cb(true);
+    });
+  });
+}
+function exportVoc(){var v=getV(mLang);var b=new Blob([JSON.stringify(v,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(cp?profKey(cp)+"_":"")+mLang+"_vokabeln.json";a.click();toast("Exportiert!");}
+function resetVoc(){if(confirm("Profil-Vokabeln zur\u00fccksetzen? Standard- oder Klassen-Vokabeln bleiben erhalten.")){try{var k=profileVocabKey(mLang);if(k)localStorage.removeItem(k);}catch(e){}if(cp&&cp.vocabSets)cp.vocabSets[mLang]="";saveCP();renderManage();updUnitSel();toast("Profil-Vokabeln zur\u00fcckgesetzt!");}}
 
 
 function showS(id){

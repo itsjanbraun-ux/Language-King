@@ -63,6 +63,8 @@ Jeder Screen ist ein `<div class="screen">`, aktiver Screen hat Klasse `active`.
 ### Datenstruktur localStorage
 ```javascript
 lk_p          // Array aller Profile (JSON)
+lk_v_db_<profile-id>_<language>      // profilbezogener lokaler Fallback
+lk_v_local_<name>_<class>_<language> // profilbezogener lokaler Fallback ohne DB-ID
 lk_v_latin    // Latein-Vokabeln (JSON-Array), überschreibt Standarddaten
 lk_v_english  // Englisch-Vokabeln (JSON-Array), überschreibt Standarddaten
 ```
@@ -74,6 +76,10 @@ lk_v_english  // Englisch-Vokabeln (JSON-Array), überschreibt Standarddaten
   cls: "6",           // Klasse
   xp: 0,
   pin: "1234",        // 4-stellige PIN, beim Erstlogin gesetzt
+  vocabSets: {
+    latin: "",        // Supabase vocab_sets.id fuer Latein
+    english: ""       // Supabase vocab_sets.id fuer Englisch
+  },
   history: [],        // max. 100 Einträge
   errors: {
     latin: {},        // { "dea": 2, "mox": 1 } — Fehlerzähler
@@ -92,6 +98,17 @@ lk_v_english  // Englisch-Vokabeln (JSON-Array), überschreibt Standarddaten
 ]
 ```
 **Hinweis:** Für Latein ist das `en`-Feld das lateinische Wort (historisch gewachsen, nicht umbenennen — bricht Import-Kompatibilität).
+
+### Profilbezogene Vokabelsets
+
+- Vokabeln werden bevorzugt pro aktivem Profil und Sprache geladen.
+- Reihenfolge: Supabase-Set aus `profile.vocabSets[language]` -> lokaler Profil-Fallback -> Klassen-Set aus Supabase -> alte globale Vokabeln -> eingebaute Standardliste.
+- Kinder duerfen im bestehenden Vokabeln-Screen importieren:
+  - **Ersetzen**: Profil-Set fuer diese Sprache neu setzen
+  - **Ergaenzen**: neue Vokabeln anhaengen, Duplikate nach Wort+Unit vermeiden
+- Upload akzeptiert JSON (`[{ "en": "...", "de": "...", "unit": 1 }]`) und CSV mit Spalten wie `unit,foreign_word,german_word`.
+- Geraeteuebergreifender Sync braucht Supabase-Erweiterung aus `supabase_vocab_sets.sql`.
+- Ohne aktiven Elternlogin oder ohne DB-Schema bleibt der Upload lokal pro Profil gespeichert.
 
 ---
 
