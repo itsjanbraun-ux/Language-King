@@ -151,7 +151,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .cfg-section{margin-bottom:14px;}
 .cfg-section:last-child{margin-bottom:0;}
 .cfg-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
-.act-btns{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+.act-btns{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 
 /* ===== QUIZ ===== */
 .quiz-topbar{background:var(--card);border-bottom:1px solid var(--border);padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
@@ -275,6 +275,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 @media(max-width:420px){
   .res-grid,.hist-grid{grid-template-columns:repeat(2,1fr);}
   .res-actions{grid-template-columns:1fr 1fr;}
+  .act-btns{grid-template-columns:1fr 1fr;}
   .cfg-2col{grid-template-columns:1fr;}
 }
 </style>
@@ -438,6 +439,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
         <div class="act-btns">
           <button class="btn btn-orange btn-lg" onclick="startRound()" style="width:100%;">&#x25B6; Starten</button>
           <button class="btn btn-teal btn-lg" onclick="startErrRound()" style="width:100%;">&#x21BB; Fehler</button>
+          <button class="btn btn-ghost-dark btn-lg" onclick="goManage()" style="width:100%;">&#x1F4DA; Vokabeln</button>
           <button class="btn btn-ghost-dark btn-lg" onclick="goHistory()" style="width:100%;">&#x1F4CA; Verlauf</button>
         </div>
       </div>
@@ -603,7 +605,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 
 <div class="bot-nav" id="botNav" style="display:none;">
   <button class="nav-btn active" id="navHome" onclick="goHome()"><span class="ni">&#x1F3E0;</span>Start</button>
-  <button class="nav-btn" id="navManage" onclick="goManage()"><span class="ni">&#x1F4DA;</span>&#x00DC;ben</button>
+  <button class="nav-btn" id="navManage" onclick="goManage()"><span class="ni">&#x1F4DA;</span>Vokabeln</button>
   <button class="nav-btn" id="navHist" onclick="goHistory()"><span class="ni">&#x1F4CA;</span>Verlauf</button>
 </div>
 <div class="toast" id="toast"></div>
