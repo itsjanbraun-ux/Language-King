@@ -566,6 +566,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
       </div>
     </div>
   </div>
+  </div>
   <div class="manage-scroll">
     <div class="manage-wrap">
       <div class="manage-title">&#x1F4DA; Vokabeln</div>
@@ -1557,9 +1558,32 @@ function goHistory(){
   }
 }
 
-function goManage(){showS("manageScreen");setNav("navManage");renderManage();}
-function setManLang(l){mLang=l;document.getElementById("mLatBtn").classList.toggle("active",l==="latin");document.getElementById("mEngBtn").classList.toggle("active",l==="english");renderManage();}
+function goManage(){
+  try{
+    showS("manageScreen");
+    setNav("navManage");
+    renderManage();
+  }catch(err){
+    console.log("goManage error",err);
+    showS("manageScreen");
+    var info=document.getElementById("vocInfo");if(info)info.textContent="Vokabeln konnten nicht geladen werden";
+    var scope=document.getElementById("vocScopeInfo");if(scope){scope.textContent=err&&err.message?err.message:"Unbekannter Fehler";scope.style.display="";}
+    var list=document.getElementById("vocList");if(list)list.innerHTML='<div style="color:#fff;font-weight:800;padding:18px;text-align:center;">Bitte einmal zur&uuml;ck zum Start und erneut &ouml;ffnen.</div>';
+  }
+}
+function setManLang(l){
+  mLang=l;
+  var lat=document.getElementById("mLatBtn");if(lat)lat.classList.toggle("active",l==="latin");
+  var eng=document.getElementById("mEngBtn");if(eng)eng.classList.toggle("active",l==="english");
+  renderManage();
+}
 function renderManage(){
+  if(!cp){
+    document.getElementById("vocInfo").textContent="Bitte zuerst ein Profil ausw\u00e4hlen";
+    var scope=document.getElementById("vocScopeInfo");if(scope){scope.textContent="Vokabeln werden immer f\u00fcr das aktuell angemeldete Profil gespeichert.";scope.style.display="";}
+    document.getElementById("vocList").innerHTML='<div style="color:#fff;font-weight:800;padding:18px;text-align:center;">Kein Profil aktiv.</div>';
+    return;
+  }
   var v=getV(mLang);document.getElementById("vocInfo").textContent=v.length+" Vokabeln \u00b7 "+(mLang==="latin"?"Latein":"Englisch");
   renderVocabScopeInfo(v.length);
   var u={};for(var i=0;i<v.length;i++){var x=v[i].unit||0;if(!u[x])u[x]=[];u[x].push(v[i]);}
@@ -1714,7 +1738,10 @@ function forceLoginBootstrap(){
   var sp=document.getElementById("stepProfile");if(sp)sp.style.display="flex";
   var pn=document.getElementById("stepPin");if(pn)pn.style.display="none";
 }
-function setNav(id){document.querySelectorAll(".nav-btn").forEach(function(b){b.classList.remove("active");});document.getElementById(id).classList.add("active");}
+function setNav(id){
+  document.querySelectorAll(".nav-btn").forEach(function(b){b.classList.remove("active");});
+  var el=document.getElementById(id);if(el)el.classList.add("active");
+}
 function shuf(arr){var a=arr.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
 function pickR(arr){return arr[Math.floor(Math.random()*arr.length)];}
 function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
