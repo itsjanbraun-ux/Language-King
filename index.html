@@ -256,8 +256,8 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .pin-error{color:#f87171;font-size:0.78rem;font-weight:800;text-align:center;min-height:20px;margin-top:4px;}
 
 /* TOAST */
-.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:#fff;font-family:'Nunito',Arial,sans-serif;font-weight:800;font-size:0.85rem;padding:10px 20px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.3);z-index:300;transition:transform 0.3s;white-space:nowrap;}
-.toast.show{transform:translateX(-50%) translateY(0);}
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%) translateY(60px);background:var(--text);color:#fff;font-family:'Nunito',Arial,sans-serif;font-weight:800;font-size:0.85rem;padding:10px 20px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,0.3);z-index:300;transition:transform 0.3s,opacity 0.2s;white-space:nowrap;opacity:0;pointer-events:none;}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1;}
 
 /* ===== ADMIN ===== */
 .admin-scroll{flex:1;overflow-y:auto;background:var(--bg2);}
