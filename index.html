@@ -203,6 +203,19 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .lc-hint{font-size:0.78rem;font-weight:700;color:var(--text3);}
 .lc-counter{font-size:0.85rem;font-weight:800;color:rgba(255,255,255,0.6);}
 .lc-nav{display:flex;gap:10px;}
+.lc-actions{display:none;grid-template-columns:1fr 1fr;gap:10px;max-width:420px;width:100%;}
+.lc-actions.show{display:grid;}
+.learn-menu-scroll{flex:1;overflow-y:auto;background:var(--bg2);}
+.learn-menu-wrap{padding:18px 14px 90px;max-width:680px;margin:0 auto;}
+.learn-menu-title{font-size:1.45rem;font-weight:900;color:#fff;margin:10px 0 4px;}
+.learn-menu-sub{font-size:0.82rem;font-weight:800;color:rgba(255,255,255,0.58);margin-bottom:14px;}
+.learn-type-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.learn-type{background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.16);border-radius:12px;padding:16px 12px;text-align:left;color:#fff;cursor:pointer;font-family:'Nunito',Arial,sans-serif;min-height:112px;}
+.learn-type:active{transform:scale(0.98);}
+.learn-type.disabled{opacity:0.55;}
+.learn-type-ico{font-size:1.8rem;margin-bottom:8px;}
+.learn-type-name{font-size:1rem;font-weight:900;margin-bottom:4px;}
+.learn-type-desc{font-size:0.72rem;font-weight:800;color:rgba(255,255,255,0.58);line-height:1.25;}
 
 /* ===== RESULT ===== */
 .result-scroll{flex:1;overflow-y:auto;background:var(--bg2);}
@@ -448,6 +461,43 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
   </div>
 </div>
 
+<!-- LEARN MENU -->
+<div id="learnMenuScreen" class="screen">
+  <div class="learn-topbar">
+    <div style="font-weight:900;color:var(--text);font-size:0.95rem;">Lernen</div>
+    <div style="font-size:0.8rem;font-weight:800;color:var(--text3);" id="lmMeta">-</div>
+    <button class="btn btn-ghost-dark btn-sm" onclick="goHome()">&#x2715; Zur&#252;ck</button>
+  </div>
+  <div class="learn-menu-scroll">
+    <div class="learn-menu-wrap">
+      <div class="learn-menu-title">Lernart w&#228;hlen</div>
+      <div class="learn-menu-sub" id="lmSub">Kurze &#220;bung, passend zu deiner Auswahl.</div>
+      <div class="learn-type-grid">
+        <button class="learn-type" onclick="startLearnType('cards')">
+          <div class="learn-type-ico">&#x1F0CF;</div>
+          <div class="learn-type-name">Karteikarten</div>
+          <div class="learn-type-desc">Aufdecken, einsch&#228;tzen und gezielt wiederholen.</div>
+        </button>
+        <button class="learn-type" onclick="startLearnType('errors')">
+          <div class="learn-type-ico">&#x21BB;</div>
+          <div class="learn-type-name">Fehlertrainer</div>
+          <div class="learn-type-desc">Nur W&#246;rter, die zuletzt schwer waren.</div>
+        </button>
+        <button class="learn-type disabled" onclick="startLearnType('image')">
+          <div class="learn-type-ico">&#x1F5BC;</div>
+          <div class="learn-type-name">Bild-Wort</div>
+          <div class="learn-type-desc">Vorbereitet f&#252;r Vokabelbilder.</div>
+        </button>
+        <button class="learn-type disabled" onclick="startLearnType('memory')">
+          <div class="learn-type-ico">&#x1F9E0;</div>
+          <div class="learn-type-name">Memory</div>
+          <div class="learn-type-desc">Paare finden, sobald Phase 2 startet.</div>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- QUIZ -->
 <div id="quizScreen" class="screen">
   <div class="quiz-topbar">
@@ -487,6 +537,10 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
       <div class="lc-hint" id="lHint">&#x1F446; Tippe zum Aufdecken</div>
     </div>
     <div class="lc-counter" id="lCount"></div>
+    <div class="lc-actions" id="lActions">
+      <button class="btn btn-teal" onclick="markLearn(true)">Kann ich</button>
+      <button class="btn btn-orange" onclick="markLearn(false)">Nochmal &#252;ben</button>
+    </div>
     <div class="lc-nav">
       <button class="btn btn-ghost" onclick="learnPrev()">&#x2190; Zur&#252;ck</button>
       <button class="btn btn-orange" onclick="learnNext()">Weiter &#x2192;</button>
@@ -631,7 +685,7 @@ var VE=[
 ];
 
 // ===== GLOBALE VARIABLEN =====
-var profs=[];var cp=null;var gs=null;var ls=null;var tIv=null;
+var profs=[];var cp=null;var gs=null;var ls=null;var tIv=null;var learnPool=[];
 var cLang="latin";var cMode="quiz";var cDir="foreign-de";var mLang="latin";
 var AVATARS=[
   {id:"adv_f",label:"Abenteurerin",src:"avatars/abenteurerin.png"},
@@ -1386,10 +1440,11 @@ function openQuizV2(){
 }
 function closeQuizV2(){var qv=document.getElementById("quizV2");if(qv)qv.style.display="none";}
 function startRound(){
-  var v=getFilt();if(v.length<4){toast("Min. 4 Vokabeln n\u00f6tig!");return;}
+  var v=getFilt();if(cMode==="learn"&&v.length===0){toast("Keine Vokabeln gefunden");return;}
+  if(cMode!=="learn"&&v.length<4){toast("Min. 4 Vokabeln n\u00f6tig!");return;}
   var cnt=parseInt(document.getElementById("qCount").value);
   var sel=shuf(v).slice(0,Math.min(cnt,v.length));
-  if(cMode==="learn"){startLearn(sel);return;}
+  if(cMode==="learn"){openLearnMenu(sel);return;}
   gs={qs:sel,all:v,idx:0,score:0,streak:0,maxS:0,ok:0,ng:0,mis:[],t0:Date.now()};
   openQuizV2();document.getElementById("q2Tot").textContent=sel.length;nextQ();
 }
@@ -1397,8 +1452,8 @@ function startErrRound(){
   if(!cp)return;
   var errs=(cp.errors&&cp.errors[cLang])||{};if(Object.keys(errs).length===0){toast("Keine Fehlervokabeln!");return;}
   var v=getV(cLang);var ev=v.filter(function(x){return errs[x.en];});
+  if(cMode==="learn"){openLearnMenu(shuf(ev));return;}
   if(ev.length<4){toast("Zu wenige Fehlervokabeln (min. 4)!");return;}
-  if(cMode==="learn"){startLearn(shuf(ev));return;}
   gs={qs:shuf(ev).slice(0,20),all:ev.length>=4?ev:v,idx:0,score:0,streak:0,maxS:0,ok:0,ng:0,mis:[],t0:Date.now(),isErr:true};
   openQuizV2();document.getElementById("q2Tot").textContent=gs.qs.length;nextQ();
 }
@@ -1482,7 +1537,40 @@ function doCancel(){if(confirm("Runde abbrechen?\nFortschritt geht verloren.")){
 function addErr(w){if(!cp.errors)cp.errors={latin:{},english:{}};if(!cp.errors[cLang])cp.errors[cLang]={};cp.errors[cLang][w]=(cp.errors[cLang][w]||0)+1;saveCP();}
 function rmErr(w){if(!cp.errors||!cp.errors[cLang])return;if(cp.errors[cLang][w]){cp.errors[cLang][w]--;if(cp.errors[cLang][w]<=0)delete cp.errors[cLang][w];saveCP();}}
 
-function startLearn(cards){ls={cards:cards,idx:0,rev:false};showS("learnScreen");document.getElementById("lTot").textContent=cards.length;showLC();}
+function openLearnMenu(cards){
+  learnPool=cards||[];
+  showS("learnMenuScreen");
+  var code=cLang==="latin"?"Latein":"Englisch";
+  var meta=document.getElementById("lmMeta");if(meta)meta.textContent=code+" \u00B7 "+learnPool.length+" Karten";
+  var sub=document.getElementById("lmSub");if(sub)sub.textContent=learnPool.length+" Vokabeln aus deiner aktuellen Auswahl.";
+}
+function startLearnType(t){
+  if(t==="image"){toast("Bild-Wort kommt in Phase 2");return;}
+  if(t==="memory"){toast("Memory kommt in Phase 2");return;}
+  if(t==="errors"){
+    var ev=getErrorCards();
+    if(ev.length===0){toast("Keine Fehler zum \u00dcben");return;}
+    startLearn(ev,"errors");
+    return;
+  }
+  if(!learnPool||learnPool.length===0)learnPool=getFilt();
+  startLearn(learnPool,"cards");
+}
+function getErrorCards(){
+  if(!cp)return[];
+  var errs=(cp.errors&&cp.errors[cLang])||{};
+  var v=getFilt();var ev=[];
+  for(var i=0;i<v.length;i++){if(errs[v[i].en])ev.push(v[i]);}
+  return shuf(ev);
+}
+function startLearn(cards,t){
+  if(!cards||cards.length===0){toast("Keine Karten gefunden");return;}
+  var cnt=parseInt(document.getElementById("qCount").value);
+  var max=(cp&&parseInt(cp.cls)<=6)?Math.min(10,cards.length):Math.min(cnt||20,cards.length);
+  var sel=shuf(cards).slice(0,max);
+  ls={cards:sel,idx:0,rev:false,type:t||"cards",known:0,again:0};
+  showS("learnScreen");document.getElementById("lTot").textContent=sel.length;showLC();
+}
 function showLC(){
   var c=ls.cards[ls.idx];var af=cDir==="foreign-de";var code=cLang==="latin"?"LA":"EN";
   document.getElementById("lDir").textContent=af?(code+" \u2192 DE"):("DE \u2192 "+code);
@@ -1490,12 +1578,25 @@ function showLC(){
   document.getElementById("lTrans").textContent=af?c.de:c.en;
   document.getElementById("lTrans").classList.remove("show");
   document.getElementById("lHint").textContent="\uD83D\uDC46 Tippe zum Aufdecken";
+  document.getElementById("lActions").classList.remove("show");
   document.getElementById("lNum").textContent=ls.idx+1;
-  document.getElementById("lCount").textContent=(ls.idx+1)+" von "+ls.cards.length+" Karten";
+  document.getElementById("lCount").textContent=(ls.idx+1)+" von "+ls.cards.length+" Karten \u00B7 Kann ich: "+(ls.known||0)+" \u00B7 Nochmal: "+(ls.again||0);
   ls.rev=false;
 }
-function toggleLearn(){if(!ls.rev){document.getElementById("lTrans").classList.add("show");document.getElementById("lHint").textContent="";ls.rev=true;}}
-function learnNext(){if(ls.idx<ls.cards.length-1){ls.idx++;showLC();}else{toast("Alle Karten durch! \uD83C\uDFC6");goHome();}}
+function toggleLearn(){if(!ls.rev){document.getElementById("lTrans").classList.add("show");document.getElementById("lHint").textContent="Wie sicher bist du?";document.getElementById("lActions").classList.add("show");ls.rev=true;}}
+function learnWordKey(w){return cLang+"|"+String(w.en||"");}
+function markLearn(ok){
+  if(!ls)return;
+  if(!ls.rev){toggleLearn();return;}
+  var w=ls.cards[ls.idx];
+  if(!cp.learnStats)cp.learnStats={};
+  var k=learnWordKey(w);var s=cp.learnStats[k]||{knownCount:0,wrongCount:0,lastSeen:""};
+  if(ok){s.knownCount=(s.knownCount||0)+1;ls.known=(ls.known||0)+1;rmErr(w.en);}
+  else{s.wrongCount=(s.wrongCount||0)+1;ls.again=(ls.again||0)+1;addErr(w.en);ls.cards.push(w);}
+  s.lastSeen=new Date().toISOString();
+  cp.learnStats[k]=s;saveCP();learnNext();
+}
+function learnNext(){if(ls.idx<ls.cards.length-1){ls.idx++;showLC();}else{toast("Lernen fertig! \uD83C\uDFC6");goHome();}}
 function learnPrev(){if(ls.idx>0){ls.idx--;showLC();}}
 
 function endRound(){
