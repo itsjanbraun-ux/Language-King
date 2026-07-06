@@ -205,6 +205,14 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .lc-nav{display:flex;gap:10px;}
 .lc-actions{display:none;grid-template-columns:1fr 1fr;gap:10px;max-width:420px;width:100%;}
 .lc-actions.show{display:grid;}
+.learn-summary{display:none;background:rgba(255,255,255,0.09);border:1px solid rgba(255,255,255,0.16);border-radius:14px;padding:18px 16px;max-width:420px;width:100%;text-align:center;color:#fff;}
+.learn-summary.show{display:block;}
+.learn-summary-title{font-size:1.25rem;font-weight:900;margin-bottom:8px;}
+.learn-summary-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0;}
+.learn-summary-stat{background:rgba(255,255,255,0.08);border-radius:10px;padding:10px 8px;}
+.learn-summary-val{font-size:1.4rem;font-weight:900;color:var(--orange);}
+.learn-summary-lbl{font-size:0.7rem;font-weight:800;color:rgba(255,255,255,0.55);}
+.learn-summary-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
 .learn-menu-scroll{flex:1;overflow-y:auto;background:var(--bg2);}
 .learn-menu-wrap{padding:18px 14px 90px;max-width:680px;margin:0 auto;}
 .learn-menu-title{font-size:1.45rem;font-weight:900;color:#fff;margin:10px 0 4px;}
@@ -531,7 +539,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
     <button class="btn btn-ghost-dark btn-sm" onclick="doCancel()">&#x2715; Abbrechen</button>
   </div>
   <div class="learn-body">
-    <div class="learn-card" onclick="toggleLearn()">
+    <div class="learn-card" id="learnCard" onclick="toggleLearn()">
       <div class="lc-word" id="lWord">-</div>
       <div class="lc-trans" id="lTrans">-</div>
       <div class="lc-hint" id="lHint">&#x1F446; Tippe zum Aufdecken</div>
@@ -541,7 +549,19 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
       <button class="btn btn-teal" onclick="markLearn(true)">Kann ich</button>
       <button class="btn btn-orange" onclick="markLearn(false)">Nochmal &#252;ben</button>
     </div>
-    <div class="lc-nav">
+    <div class="learn-summary" id="lSummary">
+      <div class="learn-summary-title" id="lSummaryTitle">Gut gelernt!</div>
+      <div style="font-size:0.82rem;font-weight:800;color:rgba(255,255,255,0.62);" id="lSummaryText">-</div>
+      <div class="learn-summary-stats">
+        <div class="learn-summary-stat"><div class="learn-summary-val" id="lKnownSum">0</div><div class="learn-summary-lbl">geschafft</div></div>
+        <div class="learn-summary-stat"><div class="learn-summary-val" id="lAgainSum">0</div><div class="learn-summary-lbl">nochmal &#252;ben</div></div>
+      </div>
+      <div class="learn-summary-actions">
+        <button class="btn btn-teal" id="lRepeatErrBtn" onclick="restartLearnErrors()">Fehler weiter &#252;ben</button>
+        <button class="btn btn-ghost" onclick="goHome()">Fertig</button>
+      </div>
+    </div>
+    <div class="lc-nav" id="lNav">
       <button class="btn btn-ghost" onclick="learnPrev()">&#x2190; Zur&#252;ck</button>
       <button class="btn btn-orange" onclick="learnNext()">Weiter &#x2192;</button>
     </div>
@@ -1569,7 +1589,15 @@ function startLearn(cards,t){
   var max=(cp&&parseInt(cp.cls)<=6)?Math.min(10,cards.length):Math.min(cnt||20,cards.length);
   var sel=shuf(cards).slice(0,max);
   ls={cards:sel,idx:0,rev:false,type:t||"cards",known:0,again:0};
+  resetLearnView();
   showS("learnScreen");document.getElementById("lTot").textContent=sel.length;showLC();
+}
+function resetLearnView(){
+  document.getElementById("learnCard").style.display="flex";
+  document.getElementById("lCount").style.display="";
+  document.getElementById("lActions").classList.remove("show");
+  document.getElementById("lNav").style.display="flex";
+  document.getElementById("lSummary").classList.remove("show");
 }
 function showLC(){
   var c=ls.cards[ls.idx];var af=cDir==="foreign-de";var code=cLang==="latin"?"LA":"EN";
@@ -1596,8 +1624,32 @@ function markLearn(ok){
   s.lastSeen=new Date().toISOString();
   cp.learnStats[k]=s;saveCP();learnNext();
 }
-function learnNext(){if(ls.idx<ls.cards.length-1){ls.idx++;showLC();}else{toast("Lernen fertig! \uD83C\uDFC6");goHome();}}
+function learnNext(){if(ls.idx<ls.cards.length-1){ls.idx++;showLC();}else{finishLearn();}}
 function learnPrev(){if(ls.idx>0){ls.idx--;showLC();}}
+function finishLearn(){
+  document.getElementById("learnCard").style.display="none";
+  document.getElementById("lActions").classList.remove("show");
+  document.getElementById("lNav").style.display="none";
+  document.getElementById("lCount").style.display="none";
+  document.getElementById("lNum").textContent=ls.cards.length;
+  document.getElementById("lKnownSum").textContent=ls.known||0;
+  document.getElementById("lAgainSum").textContent=ls.again||0;
+  var rem=countErrors();
+  document.getElementById("lSummaryTitle").textContent=ls.type==="errors"?"Fehlertraining fertig":"Karteikarten fertig";
+  document.getElementById("lSummaryText").textContent=(ls.known||0)+" geschafft \u00B7 "+(ls.again||0)+" nochmal \u00fcben \u00B7 "+rem+" Fehler offen";
+  document.getElementById("lRepeatErrBtn").style.display=rem>0?"":"none";
+  document.getElementById("lSummary").classList.add("show");
+  toast("Lernen fertig! \uD83C\uDFC6");
+}
+function countErrors(){
+  var errs=(cp&&cp.errors&&cp.errors[cLang])||{};
+  return Object.keys(errs).length;
+}
+function restartLearnErrors(){
+  var ev=getErrorCards();
+  if(ev.length===0){toast("Keine Fehler mehr offen");goHome();return;}
+  startLearn(ev,"errors");
+}
 
 function endRound(){
   try{
