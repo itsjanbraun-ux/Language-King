@@ -197,6 +197,9 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .learn-body{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px 16px;gap:16px;background:var(--bg2);}
 .learn-card{background:var(--card);border-radius:18px;box-shadow:var(--shadow2);padding:32px 24px;max-width:420px;width:100%;text-align:center;cursor:pointer;transition:transform 0.12s,box-shadow 0.12s;min-height:180px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;}
 .learn-card:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.15);}
+.lc-image{display:none;width:min(220px,72vw);height:min(220px,72vw);max-height:230px;object-fit:contain;border-radius:14px;background:var(--card2);border:1px solid var(--border);padding:10px;margin-bottom:2px;}
+.learn-card.image-mode{padding:22px 20px;min-height:310px;}
+.learn-card.image-mode .lc-image{display:block;}
 .lc-word{font-size:clamp(1.5rem,4.5vw,2.2rem);font-weight:900;color:var(--text);}
 .lc-trans{font-size:1.1rem;font-weight:800;color:var(--teal);opacity:0;transition:opacity 0.3s;}
 .lc-trans.show{opacity:1;}
@@ -491,10 +494,10 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
           <div class="learn-type-name">Fehlertrainer</div>
           <div class="learn-type-desc">Nur W&#246;rter, die zuletzt schwer waren.</div>
         </button>
-        <button class="learn-type disabled" onclick="startLearnType('image')">
+        <button class="learn-type" onclick="startLearnType('image')">
           <div class="learn-type-ico">&#x1F5BC;</div>
           <div class="learn-type-name">Bild-Wort</div>
-          <div class="learn-type-desc">Vorbereitet f&#252;r Vokabelbilder.</div>
+          <div class="learn-type-desc">Mit Bildern lernen, wenn deine Auswahl Bilder hat.</div>
         </button>
         <button class="learn-type disabled" onclick="startLearnType('memory')">
           <div class="learn-type-ico">&#x1F9E0;</div>
@@ -540,6 +543,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
   </div>
   <div class="learn-body">
     <div class="learn-card" id="learnCard" onclick="toggleLearn()">
+      <img class="lc-image" id="lImage" alt="">
       <div class="lc-word" id="lWord">-</div>
       <div class="lc-trans" id="lTrans">-</div>
       <div class="lc-hint" id="lHint">&#x1F446; Tippe zum Aufdecken</div>
@@ -866,7 +870,7 @@ function needParentAuth(){
 function loadVocabFromDB(cb){
   if(!sbReady()){if(cb)cb(false);return;}
   loadVocabSetsFromDB(function(){
-    loadVocabItemsFromDB("language,unit,foreign_word,german_word,set_id,vocab_set_id",true,cb);
+    loadVocabItemsFromDB("language,unit,foreign_word,german_word,set_id,vocab_set_id,image,example,example_translation,difficulty,word_type",true,cb);
   });
 }
 function loadVocabSetsFromDB(cb){
@@ -884,13 +888,14 @@ function loadVocabSetsFromDB(cb){
 }
 function loadVocabItemsFromDB(cols,allowSetFallback,cb){
   sb.from("vocab_items").select(cols).then(function(res){
+    if(res.error&&allowSetFallback&&isVocabOptionalColumnError(res.error)){loadVocabItemsFromDB("language,unit,foreign_word,german_word,set_id,vocab_set_id",true,cb);return;}
     if(res.error&&allowSetFallback&&isVocabSetColumnError(res.error)){loadVocabItemsFromDB("language,unit,foreign_word,german_word",false,cb);return;}
     if(res.error){console.log("SB load vocab error",res.error);if(cb)cb(false);return;}
     var rows=res.data||[];var lat=[];var eng=[];
     dbVocBySet={};
     for(var i=0;i<rows.length;i++){
       var r=rows[i];
-      var x={en:r.foreign_word,de:r.german_word,unit:r.unit||1};
+      var x=mapDbVocabItem(r);
       var setId=r.set_id||r.vocab_set_id||"";
       if(setId){if(!dbVocBySet[setId])dbVocBySet[setId]=[];dbVocBySet[setId].push(x);}
       if(!setId&&r.language==="latin")lat.push(x);
@@ -901,9 +906,22 @@ function loadVocabItemsFromDB(cols,allowSetFallback,cb){
     if(cb)cb(true);
   });
 }
+function mapDbVocabItem(r){
+  var x={en:r.foreign_word,de:r.german_word,unit:r.unit||1};
+  if(r.image)x.image=r.image;
+  if(r.example)x.example=r.example;
+  if(r.example_translation)x.exampleTranslation=r.example_translation;
+  if(r.difficulty!==undefined&&r.difficulty!==null)x.difficulty=r.difficulty;
+  if(r.word_type)x.wordType=r.word_type;
+  return x;
+}
 function isVocabSetColumnError(err){
   var m=err&&err.message?err.message:"";
   return m.indexOf("set_id")>=0||m.indexOf("vocab_set_id")>=0||m.indexOf("schema cache")>=0;
+}
+function isVocabOptionalColumnError(err){
+  var m=err&&err.message?err.message:"";
+  return m.indexOf("image")>=0||m.indexOf("example")>=0||m.indexOf("difficulty")>=0||m.indexOf("word_type")>=0;
 }
 function mapDbProfToLocal(r){
   var old=findLocalProf(r.id,r.name);
@@ -1613,7 +1631,13 @@ function openLearnMenu(cards){
   var sub=document.getElementById("lmSub");if(sub)sub.textContent=learnPool.length+" Vokabeln aus deiner aktuellen Auswahl.";
 }
 function startLearnType(t){
-  if(t==="image"){toast("Bild-Wort kommt in Phase 2");return;}
+  if(t==="image"){
+    if(!learnPool||learnPool.length===0)learnPool=getFilt();
+    var imgCards=getImageCards(learnPool);
+    if(imgCards.length===0){toast("Noch keine Bild-W\u00f6rter in dieser Auswahl");return;}
+    startLearn(imgCards,"image");
+    return;
+  }
   if(t==="memory"){toast("Memory kommt in Phase 2");return;}
   if(t==="errors"){
     var ev=getErrorCards();
@@ -1623,6 +1647,11 @@ function startLearnType(t){
   }
   if(!learnPool||learnPool.length===0)learnPool=getFilt();
   startLearn(learnPool,"cards");
+}
+function getImageCards(cards){
+  var out=[];cards=cards||[];
+  for(var i=0;i<cards.length;i++){if(cards[i]&&cards[i].image)out.push(cards[i]);}
+  return out;
 }
 function getErrorCards(){
   if(!cp)return[];
@@ -1641,7 +1670,9 @@ function startLearn(cards,t){
   showS("learnScreen");document.getElementById("lTot").textContent=sel.length;showLC();
 }
 function resetLearnView(){
-  document.getElementById("learnCard").style.display="flex";
+  var card=document.getElementById("learnCard");
+  card.style.display="flex";card.classList.remove("image-mode");
+  var img=document.getElementById("lImage");if(img){img.style.display="none";img.removeAttribute("src");img.alt="";}
   document.getElementById("lCount").style.display="";
   document.getElementById("lActions").classList.remove("show");
   document.getElementById("lNav").style.display="flex";
@@ -1649,11 +1680,22 @@ function resetLearnView(){
 }
 function showLC(){
   var c=ls.cards[ls.idx];var af=cDir==="foreign-de";var code=cLang==="latin"?"LA":"EN";
-  document.getElementById("lDir").textContent=af?(code+" \u2192 DE"):("DE \u2192 "+code);
-  document.getElementById("lWord").textContent=af?c.en:c.de;
-  document.getElementById("lTrans").textContent=af?c.de:c.en;
+  var img=document.getElementById("lImage");var card=document.getElementById("learnCard");
+  document.getElementById("lDir").textContent=ls.type==="image"?"BILD \u2192 WORT":(af?(code+" \u2192 DE"):("DE \u2192 "+code));
+  if(ls.type==="image"){
+    card.classList.add("image-mode");
+    if(img){img.src=c.image;img.alt=c.de||c.en||"";img.style.display="block";}
+    document.getElementById("lWord").textContent="Was ist das?";
+    document.getElementById("lTrans").textContent=c.en+" \u00B7 "+c.de;
+    document.getElementById("lHint").textContent="\uD83D\uDC46 Tippe zum Aufdecken";
+  }else{
+    card.classList.remove("image-mode");
+    if(img){img.style.display="none";img.removeAttribute("src");img.alt="";}
+    document.getElementById("lWord").textContent=af?c.en:c.de;
+    document.getElementById("lTrans").textContent=af?c.de:c.en;
+    document.getElementById("lHint").textContent="\uD83D\uDC46 Tippe zum Aufdecken";
+  }
   document.getElementById("lTrans").classList.remove("show");
-  document.getElementById("lHint").textContent="\uD83D\uDC46 Tippe zum Aufdecken";
   document.getElementById("lActions").classList.remove("show");
   document.getElementById("lNum").textContent=ls.idx+1;
   document.getElementById("lCount").textContent=(ls.idx+1)+" von "+ls.cards.length+" Karten \u00B7 Kann ich: "+(ls.known||0)+" \u00B7 Nochmal: "+(ls.again||0);
@@ -1676,6 +1718,7 @@ function learnNext(){if(ls.idx<ls.cards.length-1){ls.idx++;showLC();}else{finish
 function learnPrev(){if(ls.idx>0){ls.idx--;showLC();}}
 function finishLearn(){
   document.getElementById("learnCard").style.display="none";
+  var img=document.getElementById("lImage");if(img){img.style.display="none";img.removeAttribute("src");}
   document.getElementById("lActions").classList.remove("show");
   document.getElementById("lNav").style.display="none";
   document.getElementById("lCount").style.display="none";
@@ -1831,9 +1874,23 @@ function parseVocabImport(txt,name){
   for(var i=0;i<data.length;i++){
     var r=data[i]||{};var en=r.en||r.foreign_word||r.latein||r.englisch||r.word||r.vokabel;
     var de=r.de||r.german_word||r.deutsch||r.translation||r.bedeutung;
-    if(en&&de)out.push({en:String(en).trim(),de:String(de).trim(),unit:r.unit||r.lektion||r.lesson||1});
+    if(en&&de)out.push(normalizeVocabItem(r,en,de));
   }
   return out;
+}
+function normalizeVocabItem(r,en,de){
+  var x={en:String(en).trim(),de:String(de).trim(),unit:r.unit||r.lektion||r.lesson||1};
+  var img=r.image||r.img||r.bild||r.picture||"";
+  var ex=r.example||r.sentence||r.beispiel||"";
+  var ext=r.exampleTranslation||r.example_translation||r.sentence_translation||r.beispiel_uebersetzung||r.beispiel_translation||"";
+  var diff=r.difficulty||r.schwierigkeit||"";
+  var wt=r.wordType||r.word_type||r.type||r.wortart||"";
+  if(img)x.image=String(img).trim();
+  if(ex)x.example=String(ex).trim();
+  if(ext)x.exampleTranslation=String(ext).trim();
+  if(diff!==""&&diff!==null&&diff!==undefined)x.difficulty=parseInt(diff,10)||0;
+  if(wt)x.wordType=String(wt).trim();
+  return x;
 }
 function parseCsvVocab(txt){
   var lines=txt.replace(/\r/g,"").split("\n");var rows=[];var head=null;
@@ -1887,12 +1944,32 @@ function syncProfileVocabToDB(l,data,cb){
 function replaceVocabSetItems(setId,l,data,cb){
   sb.from("vocab_items").delete().eq("set_id",setId).then(function(delRes){
     if(delRes.error&&isVocabSetColumnError(delRes.error)){VOC_SCHEMA_MSG="Supabase-Sync braucht Spalte vocab_items.set_id.";console.log("SB delete vocab items error",delRes.error);if(cb)cb(false);return;}
-    var rows=[];for(var i=0;i<data.length;i++)rows.push({set_id:setId,language:l,unit:data[i].unit||1,foreign_word:data[i].en,german_word:data[i].de});
+    var rows=[];for(var i=0;i<data.length;i++)rows.push(dbVocabPayload(setId,l,data[i],true));
     sb.from("vocab_items").insert(rows).then(function(insRes){
+      if(insRes.error&&isVocabOptionalColumnError(insRes.error)){replaceVocabSetItemsBasic(setId,l,data,cb);return;}
       if(insRes.error){VOC_SCHEMA_MSG="Supabase-Sync der Vokabeln fehlgeschlagen.";console.log("SB insert vocab items error",insRes.error);if(cb)cb(false);return;}
       dbVocBySet[setId]=data.slice();if(cb)cb(true);
     });
   });
+}
+function replaceVocabSetItemsBasic(setId,l,data,cb){
+  var rows=[];for(var i=0;i<data.length;i++)rows.push(dbVocabPayload(setId,l,data[i],false));
+  sb.from("vocab_items").insert(rows).then(function(insRes){
+    if(insRes.error){VOC_SCHEMA_MSG="Supabase-Bildfelder fehlen noch. Upload bleibt lokal vollstaendig.";console.log("SB insert basic vocab items error",insRes.error);if(cb)cb(false);return;}
+    VOC_SCHEMA_MSG="Supabase-Bildfelder fehlen noch. Bilder bleiben nur lokal.";
+    dbVocBySet[setId]=data.slice();if(cb)cb(true);
+  });
+}
+function dbVocabPayload(setId,l,item,withOptional){
+  var row={set_id:setId,language:l,unit:item.unit||1,foreign_word:item.en,german_word:item.de};
+  if(withOptional){
+    row.image=item.image||null;
+    row.example=item.example||null;
+    row.example_translation=item.exampleTranslation||null;
+    row.difficulty=item.difficulty||null;
+    row.word_type=item.wordType||null;
+  }
+  return row;
 }
 function exportVoc(){var v=getV(mLang);var b=new Blob([JSON.stringify(v,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(cp?profKey(cp)+"_":"")+mLang+"_vokabeln.json";a.click();toast("Exportiert!");}
 function resetVoc(){if(confirm("Profil-Vokabeln zur\u00fccksetzen? Standard- oder Klassen-Vokabeln bleiben erhalten.")){try{var k=profileVocabKey(mLang);if(k)localStorage.removeItem(k);}catch(e){}if(cp&&cp.vocabSets)cp.vocabSets[mLang]="";saveCP();renderManage();updUnitSel();toast("Profil-Vokabeln zur\u00fcckgesetzt!");}}
