@@ -1,0 +1,102 @@
+[
+  {
+    "en": "dog",
+    "de": "der Hund",
+    "unit": 1,
+    "image": "vocab-images/dog.png",
+    "example": "The dog is friendly.",
+    "exampleTranslation": "Der Hund ist freundlich.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "house",
+    "de": "das Haus",
+    "unit": 1,
+    "image": "vocab-images/house.png",
+    "example": "The house is small.",
+    "exampleTranslation": "Das Haus ist klein.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "goal",
+    "de": "das Tor",
+    "unit": 1,
+    "image": "vocab-images/goal.png",
+    "example": "The ball is in the goal.",
+    "exampleTranslation": "Der Ball ist im Tor.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "water",
+    "de": "das Wasser",
+    "unit": 1,
+    "image": "vocab-images/water.png",
+    "example": "I drink water.",
+    "exampleTranslation": "Ich trinke Wasser.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "bread",
+    "de": "das Brot",
+    "unit": 1,
+    "image": "vocab-images/bread.png",
+    "example": "The bread is fresh.",
+    "exampleTranslation": "Das Brot ist frisch.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "king",
+    "de": "der Koenig",
+    "unit": 1,
+    "image": "vocab-images/king.png",
+    "example": "The king has a crown.",
+    "exampleTranslation": "Der Koenig hat eine Krone.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "queen",
+    "de": "die Koenigin",
+    "unit": 1,
+    "image": "vocab-images/queen.png",
+    "example": "The queen has a crown.",
+    "exampleTranslation": "Die Koenigin hat eine Krone.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "school",
+    "de": "die Schule",
+    "unit": 1,
+    "image": "vocab-images/school.png",
+    "example": "We go to school.",
+    "exampleTranslation": "Wir gehen zur Schule.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "tree",
+    "de": "der Baum",
+    "unit": 1,
+    "image": "vocab-images/tree.png",
+    "example": "The tree is green.",
+    "exampleTranslation": "Der Baum ist gruen.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "friend",
+    "de": "der Freund",
+    "unit": 1,
+    "image": "vocab-images/friend.png",
+    "example": "My friend is kind.",
+    "exampleTranslation": "Mein Freund ist nett.",
+    "difficulty": 1,
+    "wordType": "noun"
+  }
+]
