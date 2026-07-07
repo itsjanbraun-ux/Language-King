@@ -727,6 +727,8 @@ var dbVoc={latin:null,english:null};
 var dbVocBySet={};
 var dbVocSets={latin:[],english:[]};
 var VOC_SCHEMA_MSG="";
+var LEARN_STATS_SCHEMA_MSG="";
+var LEARN_STATS_DB_DISABLED=false;
 var appendImport=0;
 var SB_USER_ID=null;
 var PARENT_AUTH=false;
@@ -906,7 +908,7 @@ function isVocabSetColumnError(err){
 function mapDbProfToLocal(r){
   var old=findLocalProf(r.id,r.name);
   var dbPin=r.pin!==undefined&&r.pin!==null?r.pin:(old&&old.pin?old.pin:"");
-  return{name:r.name||"",cls:r.class_level||"6",xp:r.xp||0,pin:dbPin,avatar:r.avatar||(old&&old.avatar?old.avatar:""),vocabSets:{latin:r.latin_vocab_set_id||(old&&old.vocabSets?old.vocabSets.latin:"")||"",english:r.english_vocab_set_id||(old&&old.vocabSets?old.vocabSets.english:"")||""},history:old&&old.history?old.history:[],errors:old&&old.errors?old.errors:{latin:{},english:{}},weeklyMin:old&&old.weeklyMin?old.weeklyMin:0,weekStart:old&&old.weekStart?old.weekStart:wkStart(),_dbid:r.id,_uid:r.user_id||null};
+  return{name:r.name||"",cls:r.class_level||"6",xp:r.xp||0,pin:dbPin,avatar:r.avatar||(old&&old.avatar?old.avatar:""),vocabSets:{latin:r.latin_vocab_set_id||(old&&old.vocabSets?old.vocabSets.latin:"")||"",english:r.english_vocab_set_id||(old&&old.vocabSets?old.vocabSets.english:"")||""},history:old&&old.history?old.history:[],errors:old&&old.errors?old.errors:{latin:{},english:{}},learnStats:old&&old.learnStats?old.learnStats:{},weeklyMin:old&&old.weeklyMin?old.weeklyMin:0,weekStart:old&&old.weekStart?old.weekStart:wkStart(),_dbid:r.id,_uid:r.user_id||null};
 }
 function findLocalProf(id,name){
   for(var i=0;i<profs.length;i++){
@@ -932,7 +934,9 @@ function loadProfilesQuery(cols,allowAvatarFallback,cb){
     if(rows[0].user_id)SB_USER_ID=rows[0].user_id;
     var next=[];for(var i=0;i<rows.length;i++)next.push(mapDbProfToLocal(rows[i]));
     PROFILE_LOAD_MSG="";
-    profs=next;saveP();renderP();if(cb)cb(true);
+    loadLearnStatsFromDB(next,function(){
+      profs=next;saveP();renderP();if(cb)cb(true);
+    });
   });
 }
 function isAvatarColumnError(err){
@@ -1013,6 +1017,50 @@ function fetchAttemptsFromDB(cb){
       list.push({date:r.created_at,mode:r.mode||"quiz",lang:r.language||cLang,dir:d.dir||cDir,correct:r.correct_count||0,total:r.total_count||0,pct:pct,grade:r.grade||gradeCalc(pct),points:r.score||0,time:Math.max(1,Math.round((r.duration_sec||0)/60)),unit:d.unit||"all"});
     }
     if(cb)cb(list);
+  });
+}
+function isLearnStatsTableError(err){
+  var m=err&&err.message?err.message:"";
+  return m.indexOf("profile_word_stats")>=0||m.indexOf("schema cache")>=0||m.indexOf("relation")>=0||m.indexOf("does not exist")>=0;
+}
+function loadLearnStatsFromDB(list,cb){
+  if(!sbReady()||LEARN_STATS_DB_DISABLED){if(cb)cb(false);return;}
+  var ids=[];for(var i=0;i<list.length;i++){if(list[i]._dbid)ids.push(list[i]._dbid);}
+  if(ids.length===0){if(cb)cb(false);return;}
+  sb.from("profile_word_stats").select("profile_id,language,foreign_word,correct_count,wrong_count,last_seen").in("profile_id",ids).then(function(res){
+    if(res.error){
+      if(isLearnStatsTableError(res.error)){LEARN_STATS_DB_DISABLED=true;LEARN_STATS_SCHEMA_MSG="Lernfortschritt-Sync braucht Tabelle profile_word_stats.";console.log("SB load learn stats schema missing",res.error);}
+      else console.log("SB load learn stats error",res.error);
+      if(cb)cb(false);return;
+    }
+    var byId={};for(var p=0;p<list.length;p++){byId[list[p]._dbid]=list[p];if(!list[p].learnStats)list[p].learnStats={};}
+    var rows=res.data||[];
+    for(var j=0;j<rows.length;j++){
+      var r=rows[j];var prof=byId[r.profile_id];if(!prof)continue;
+      var lang=r.language==="english"?"english":"latin";
+      prof.learnStats[lang+"|"+String(r.foreign_word||"")]={knownCount:r.correct_count||0,wrongCount:r.wrong_count||0,lastSeen:r.last_seen||""};
+    }
+    if(cb)cb(true);
+  });
+}
+function saveLearnStatToDB(profile,language,word,stat){
+  if(!sbReady()||LEARN_STATS_DB_DISABLED)return;
+  if(!profile||!profile._dbid||!word||!stat)return;
+  var foreign=String(word.en||"");
+  if(!foreign)return;
+  var row={
+    profile_id:profile._dbid,
+    language:language==="english"?"english":"latin",
+    foreign_word:foreign,
+    correct_count:stat.knownCount||0,
+    wrong_count:stat.wrongCount||0,
+    last_seen:stat.lastSeen||new Date().toISOString()
+  };
+  sb.from("profile_word_stats").upsert(row,{onConflict:"profile_id,language,foreign_word"}).then(function(res){
+    if(res.error){
+      if(isLearnStatsTableError(res.error)){LEARN_STATS_DB_DISABLED=true;LEARN_STATS_SCHEMA_MSG="Lernfortschritt-Sync braucht Tabelle profile_word_stats.";toast("Lernfortschritt bleibt lokal, bis Supabase erweitert ist");}
+      else console.log("SB save learn stat error",res.error);
+    }
   });
 }
 function attemptsDiag(){
@@ -1622,7 +1670,7 @@ function markLearn(ok){
   if(ok){s.knownCount=(s.knownCount||0)+1;ls.known=(ls.known||0)+1;rmErr(w.en);}
   else{s.wrongCount=(s.wrongCount||0)+1;ls.again=(ls.again||0)+1;addErr(w.en);ls.cards.push(w);}
   s.lastSeen=new Date().toISOString();
-  cp.learnStats[k]=s;saveCP();learnNext();
+  cp.learnStats[k]=s;saveCP();saveLearnStatToDB(cp,cLang,w,s);learnNext();
 }
 function learnNext(){if(ls.idx<ls.cards.length-1){ls.idx++;showLC();}else{finishLearn();}}
 function learnPrev(){if(ls.idx>0){ls.idx--;showLC();}}
