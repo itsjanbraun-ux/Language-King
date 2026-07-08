@@ -908,6 +908,30 @@ function loadVocabItemsFromDB(cols,allowSetFallback,cb){
     if(cb)cb(true);
   });
 }
+function loadBundledImageVocab(cb){
+  if(!window.fetch){if(cb)cb(false);return;}
+  fetch("vocab-image-mvp.json",{cache:"no-store"}).then(function(res){
+    if(!res.ok){if(cb)cb(false);return null;}
+    return res.json();
+  }).then(function(data){
+    if(!data){return;}
+    var out=[];
+    for(var i=0;i<data.length;i++){
+      var r=data[i]||{};
+      var en=r.en||r.foreign_word||r.englisch||r.word||r.vokabel;
+      var de=r.de||r.german_word||r.deutsch||r.translation||r.bedeutung;
+      if(en&&de){
+        var x=normalizeVocabItem(r,en,de);
+        if(x.image)out.push(x);
+      }
+    }
+    if(out.length>0)dbVoc.english=mergeVoc(dbVoc.english||[],out);
+    if(cb)cb(out.length>0);
+  }).catch(function(err){
+    console.log("bundled image vocab load",err);
+    if(cb)cb(false);
+  });
+}
 function mapDbVocabItem(r){
   var x={en:r.foreign_word,de:r.german_word,unit:r.unit||1};
   if(r.image)x.image=r.image;
@@ -2093,7 +2117,7 @@ function bootApp(){
     showS("loginScreen");
     document.getElementById("stepProfile").style.display="flex";
     document.getElementById("stepPin").style.display="none";
-    loadVocabFromDB(function(ok){if(ok&&cp)updUnitSel();});
+    loadVocabFromDB(function(ok){loadBundledImageVocab(function(){if(cp)updUnitSel();});});
     initAuthWatcher();
     initSbUser(function(ok){if(ok)loadProfilesFromDB();});
     initPasswordRecoveryUI();
