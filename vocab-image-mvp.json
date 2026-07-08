@@ -98,5 +98,155 @@
     "exampleTranslation": "Mein Freund ist nett.",
     "difficulty": 1,
     "wordType": "noun"
+  },
+  {
+    "en": "apple",
+    "de": "der Apfel",
+    "unit": 1,
+    "image": "vocab-images/apple.png",
+    "example": "The apple is red.",
+    "exampleTranslation": "Der Apfel ist rot.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "car",
+    "de": "das Auto",
+    "unit": 1,
+    "image": "vocab-images/car.png",
+    "example": "The car is fast.",
+    "exampleTranslation": "Das Auto ist schnell.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "cat",
+    "de": "die Katze",
+    "unit": 1,
+    "image": "vocab-images/cat.png",
+    "example": "The cat is small.",
+    "exampleTranslation": "Die Katze ist klein.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "book",
+    "de": "das Buch",
+    "unit": 1,
+    "image": "vocab-images/book.png",
+    "example": "I read a book.",
+    "exampleTranslation": "Ich lese ein Buch.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "ball",
+    "de": "der Ball",
+    "unit": 1,
+    "image": "vocab-images/ball.png",
+    "example": "The ball is round.",
+    "exampleTranslation": "Der Ball ist rund.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "chair",
+    "de": "der Stuhl",
+    "unit": 1,
+    "image": "vocab-images/chair.png",
+    "example": "The chair is wooden.",
+    "exampleTranslation": "Der Stuhl ist aus Holz.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "table",
+    "de": "der Tisch",
+    "unit": 1,
+    "image": "vocab-images/table.png",
+    "example": "The table is round.",
+    "exampleTranslation": "Der Tisch ist rund.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "sun",
+    "de": "die Sonne",
+    "unit": 1,
+    "image": "vocab-images/sun.png",
+    "example": "The sun is bright.",
+    "exampleTranslation": "Die Sonne ist hell.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "moon",
+    "de": "der Mond",
+    "unit": 1,
+    "image": "vocab-images/moon.png",
+    "example": "The moon is in the sky.",
+    "exampleTranslation": "Der Mond ist am Himmel.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "star",
+    "de": "der Stern",
+    "unit": 1,
+    "image": "vocab-images/star.png",
+    "example": "The star is yellow.",
+    "exampleTranslation": "Der Stern ist gelb.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "fish",
+    "de": "der Fisch",
+    "unit": 1,
+    "image": "vocab-images/fish.png",
+    "example": "The fish is orange.",
+    "exampleTranslation": "Der Fisch ist orange.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "bird",
+    "de": "der Vogel",
+    "unit": 1,
+    "image": "vocab-images/bird.png",
+    "example": "The bird is blue.",
+    "exampleTranslation": "Der Vogel ist blau.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "flower",
+    "de": "die Blume",
+    "unit": 1,
+    "image": "vocab-images/flower.png",
+    "example": "The flower is pink.",
+    "exampleTranslation": "Die Blume ist rosa.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "door",
+    "de": "die Tuer",
+    "unit": 1,
+    "image": "vocab-images/door.png",
+    "example": "I open the door.",
+    "exampleTranslation": "Ich oeffne die Tuer.",
+    "difficulty": 1,
+    "wordType": "noun"
+  },
+  {
+    "en": "window",
+    "de": "das Fenster",
+    "unit": 1,
+    "image": "vocab-images/window.png",
+    "example": "The window is blue.",
+    "exampleTranslation": "Das Fenster ist blau.",
+    "difficulty": 1,
+    "wordType": "noun"
   }
 ]
