@@ -888,8 +888,10 @@ function loadVocabSetsFromDB(cb){
 }
 function loadVocabItemsFromDB(cols,allowSetFallback,cb){
   sb.from("vocab_items").select(cols).then(function(res){
-    if(res.error&&allowSetFallback&&isVocabOptionalColumnError(res.error)){loadVocabItemsFromDB("language,unit,foreign_word,german_word,set_id,vocab_set_id",true,cb);return;}
-    if(res.error&&allowSetFallback&&isVocabSetColumnError(res.error)){loadVocabItemsFromDB("language,unit,foreign_word,german_word",false,cb);return;}
+    if(res.error&&allowSetFallback&&isMissingVocabSetIdError(res.error)){loadVocabItemsFromDB("language,unit,foreign_word,german_word,set_id,image,example,example_translation,difficulty,word_type",true,cb);return;}
+    if(res.error&&allowSetFallback&&isMissingSetIdError(res.error)){loadVocabItemsFromDB("language,unit,foreign_word,german_word,image,example,example_translation,difficulty,word_type",false,cb);return;}
+    if(res.error&&allowSetFallback&&isVocabOptionalColumnError(res.error)){loadVocabItemsFromDB("language,unit,foreign_word,german_word,set_id",true,cb);return;}
+    if(res.error&&allowSetFallback&&isVocabSetColumnError(res.error)){loadVocabItemsFromDB("language,unit,foreign_word,german_word,image,example,example_translation,difficulty,word_type",false,cb);return;}
     if(res.error){console.log("SB load vocab error",res.error);if(cb)cb(false);return;}
     var rows=res.data||[];var lat=[];var eng=[];
     dbVocBySet={};
@@ -918,6 +920,14 @@ function mapDbVocabItem(r){
 function isVocabSetColumnError(err){
   var m=err&&err.message?err.message:"";
   return m.indexOf("set_id")>=0||m.indexOf("vocab_set_id")>=0||m.indexOf("schema cache")>=0;
+}
+function isMissingVocabSetIdError(err){
+  var m=err&&err.message?err.message:"";
+  return m.indexOf("vocab_set_id")>=0;
+}
+function isMissingSetIdError(err){
+  var m=err&&err.message?err.message:"";
+  return m.indexOf("set_id")>=0&&m.indexOf("vocab_set_id")<0;
 }
 function isVocabOptionalColumnError(err){
   var m=err&&err.message?err.message:"";
