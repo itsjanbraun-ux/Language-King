@@ -1643,7 +1643,7 @@ function openLearnMenu(cards){
 function startLearnType(t){
   if(t==="image"){
     if(!learnPool||learnPool.length===0)learnPool=getFilt();
-    var imgCards=getImageCards(learnPool);
+    var imgCards=getImageLearnCards(learnPool);
     if(imgCards.length===0){toast("Noch keine Bild-W\u00f6rter in dieser Auswahl");return;}
     startLearn(imgCards,"image");
     return;
@@ -1661,6 +1661,32 @@ function startLearnType(t){
 function getImageCards(cards){
   var out=[];cards=cards||[];
   for(var i=0;i<cards.length;i++){if(cards[i]&&cards[i].image)out.push(cards[i]);}
+  return out;
+}
+function getImageLearnCards(cards){
+  var imgCards=getImageCards(cards);
+  if(imgCards.length>0)return imgCards;
+  imgCards=getFallbackImageCards();
+  if(imgCards.length>0)toast("Bild-W\u00f6rter aus dem Standard-Set");
+  return imgCards;
+}
+function getFallbackImageCards(){
+  var out=[];var seen={};
+  function addList(list){
+    list=list||[];
+    for(var i=0;i<list.length;i++){
+      var w=list[i];if(!w||!w.image)continue;
+      var k=String(w.en||"").toLowerCase()+"|"+String(w.unit||1);
+      if(seen[k])continue;
+      seen[k]=true;out.push(w);
+    }
+  }
+  addList(dbVoc[cLang]);
+  var sets=dbVocSets[cLang]||[];
+  for(var s=0;s<sets.length;s++){if(!sets[s].profile_id)addList(dbVocBySet[sets[s].id]);}
+  var unitEl=document.getElementById("unitSel");
+  var unit=unitEl?unitEl.value:"all";
+  if(unit!=="all")out=out.filter(function(x){return String(x.unit)===unit;});
   return out;
 }
 function getErrorCards(){
