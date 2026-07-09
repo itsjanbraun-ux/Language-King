@@ -204,6 +204,10 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .lc-word{font-size:clamp(1.5rem,4.5vw,2.2rem);font-weight:900;color:var(--text);}
 .lc-trans{font-size:1.1rem;font-weight:800;color:var(--teal);opacity:0;transition:opacity 0.3s;}
 .lc-trans.show{opacity:1;}
+.lc-example{display:none;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:9px 11px;width:100%;max-width:330px;text-align:left;}
+.lc-example.show{display:block;}
+.lc-example-en{font-size:0.82rem;font-weight:900;color:var(--text);line-height:1.25;}
+.lc-example-de{font-size:0.76rem;font-weight:800;color:var(--text3);line-height:1.25;margin-top:3px;}
 .lc-hint{font-size:0.78rem;font-weight:700;color:var(--text3);}
 .lc-progress{font-size:0.72rem;font-weight:900;color:var(--text3);background:var(--card2);border:1px solid var(--border);border-radius:999px;padding:5px 11px;display:none;}
 .lc-progress.show{display:inline-block;}
@@ -550,6 +554,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
       <img class="lc-image" id="lImage" alt="">
       <div class="lc-word" id="lWord">-</div>
       <div class="lc-trans" id="lTrans">-</div>
+      <div class="lc-example" id="lExample"><div class="lc-example-en" id="lExampleEn"></div><div class="lc-example-de" id="lExampleDe"></div></div>
       <div class="lc-progress" id="lProgress">Neu</div>
       <div class="lc-hint" id="lHint">&#x1F446; Tippe zum Aufdecken</div>
     </div>
@@ -1765,6 +1770,7 @@ function resetLearnView(){
   card.style.display="flex";card.classList.remove("image-mode");
   var img=document.getElementById("lImage");if(img){img.style.display="none";img.removeAttribute("src");img.alt="";}
   var prog=document.getElementById("lProgress");if(prog)prog.classList.remove("show");
+  hideLearnExample();
   document.getElementById("lCount").style.display="";
   document.getElementById("lActions").classList.remove("show");
   document.getElementById("lNav").style.display="flex";
@@ -1779,15 +1785,18 @@ function showLC(){
     if(img){img.src=c.image;img.alt=c.de||c.en||"";img.style.display="block";}
     document.getElementById("lWord").textContent="Was ist das?";
     document.getElementById("lTrans").textContent=c.en+" \u00B7 "+c.de;
+    setLearnExample(c);
     document.getElementById("lHint").textContent="\uD83D\uDC46 Tippe zum Aufdecken";
   }else{
     card.classList.remove("image-mode");
     if(img){img.style.display="none";img.removeAttribute("src");img.alt="";}
     document.getElementById("lWord").textContent=af?c.en:c.de;
     document.getElementById("lTrans").textContent=af?c.de:c.en;
+    setLearnExample(null);
     document.getElementById("lHint").textContent="\uD83D\uDC46 Tippe zum Aufdecken";
   }
   document.getElementById("lTrans").classList.remove("show");
+  hideLearnExample();
   document.getElementById("lActions").classList.remove("show");
   document.getElementById("lNum").textContent=ls.idx+1;
   document.getElementById("lTot").textContent=ls.cards.length;
@@ -1795,7 +1804,21 @@ function showLC(){
   setLearnProgressPill(c);
   ls.rev=false;
 }
-function toggleLearn(){if(!ls.rev){document.getElementById("lTrans").classList.add("show");document.getElementById("lHint").textContent="Wie sicher bist du?";document.getElementById("lActions").classList.add("show");ls.rev=true;}}
+function toggleLearn(){if(!ls.rev){document.getElementById("lTrans").classList.add("show");showLearnExample();document.getElementById("lHint").textContent="Wie sicher bist du?";document.getElementById("lActions").classList.add("show");document.getElementById("lNav").style.display="none";ls.rev=true;}}
+function setLearnExample(w){
+  var box=document.getElementById("lExample");if(!box)return;
+  var en=w&&w.example?String(w.example):"";
+  var de=w&&w.exampleTranslation?String(w.exampleTranslation):"";
+  document.getElementById("lExampleEn").textContent=en;
+  document.getElementById("lExampleDe").textContent=de;
+  if(!en&&!de)box.setAttribute("data-empty","1");else box.setAttribute("data-empty","0");
+}
+function hideLearnExample(){
+  var box=document.getElementById("lExample");if(box)box.classList.remove("show");
+}
+function showLearnExample(){
+  var box=document.getElementById("lExample");if(box&&box.getAttribute("data-empty")!=="1")box.classList.add("show");
+}
 function learnWordKey(w){return cLang+"|"+String(w.en||"");}
 function learnStatForWord(w){
   if(!cp||!cp.learnStats||!w)return null;
