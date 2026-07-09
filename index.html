@@ -1668,7 +1668,7 @@ function startLearnType(t){
   if(t==="image"){
     if(!learnPool||learnPool.length===0)learnPool=getFilt();
     var imgCards=getImageLearnCards(learnPool);
-    if(imgCards.length===0){toast("Noch keine Bild-W\u00f6rter in dieser Auswahl");return;}
+    if(imgCards.length===0){toast(getImageNoCardsMessage());return;}
     startLearn(imgCards,"image");
     return;
   }
@@ -1686,6 +1686,10 @@ function getImageCards(cards){
   var out=[];cards=cards||[];
   for(var i=0;i<cards.length;i++){if(cards[i]&&cards[i].image)out.push(cards[i]);}
   return out;
+}
+function getImageNoCardsMessage(){
+  if(cLang!=="english")return "Bild-Wort ist aktuell f\u00fcr Englisch verf\u00fcgbar";
+  return "Noch keine Bild-W\u00f6rter geladen. Bitte Alle Units w\u00e4hlen oder neu laden";
 }
 function getImageLearnCards(cards){
   var imgCards=getImageCards(cards);
@@ -1708,9 +1712,13 @@ function getFallbackImageCards(){
   addList(dbVoc[cLang]);
   var sets=dbVocSets[cLang]||[];
   for(var s=0;s<sets.length;s++){if(!sets[s].profile_id)addList(dbVocBySet[sets[s].id]);}
+  var all=out.slice();
   var unitEl=document.getElementById("unitSel");
   var unit=unitEl?unitEl.value:"all";
-  if(unit!=="all")out=out.filter(function(x){return String(x.unit)===unit;});
+  if(unit!=="all"){
+    out=out.filter(function(x){return String(x.unit)===unit;});
+    if(out.length===0)out=all;
+  }
   return out;
 }
 function getErrorCards(){
