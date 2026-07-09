@@ -1760,10 +1760,21 @@ function startLearn(cards,t){
   if(!cards||cards.length===0){toast("Keine Karten gefunden");return;}
   var cnt=parseInt(document.getElementById("qCount").value);
   var max=(cp&&parseInt(cp.cls)<=6)?Math.min(10,cards.length):Math.min(cnt||20,cards.length);
-  var sel=shuf(cards).slice(0,max);
+  var sel=selectLearnCards(cards,max,t||"cards");
   ls={cards:sel,idx:0,rev:false,type:t||"cards",known:0,again:0};
   resetLearnView();
   showS("learnScreen");document.getElementById("lTot").textContent=sel.length;showLC();
+}
+function selectLearnCards(cards,max,t){
+  if(t!=="image")return shuf(cards).slice(0,max);
+  var fresh=[];var known=[];
+  for(var i=0;i<cards.length;i++){
+    var s=learnStatForWord(cards[i]);
+    if(!s||(s.knownCount||0)<=0)fresh.push(cards[i]);
+    else known.push(cards[i]);
+  }
+  var out=shuf(fresh).concat(shuf(known));
+  return out.slice(0,max);
 }
 function resetLearnView(){
   var card=document.getElementById("learnCard");
