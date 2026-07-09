@@ -668,7 +668,11 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
         <button class="btn btn-teal btn-sm" onclick="appendImport=0;document.getElementById('importInput').click()">&#x1F4E5; Ersetzen</button>
         <button class="btn btn-ghost btn-sm" onclick="appendImport=1;document.getElementById('importInput').click()">&#x2795; Erg&auml;nzen</button>
         <button class="btn btn-ghost btn-sm" onclick="exportVoc()">&#x1F4E4; Export</button>
+        <button class="btn btn-ghost btn-sm" onclick="downloadImportTemplate()">&#x1F4CB; Vorlage</button>
         <button class="btn btn-ghost btn-sm" onclick="resetVoc()">&#x21BB; Reset</button>
+      </div>
+      <div style="background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.14);border-radius:12px;padding:10px 12px;margin-bottom:10px;color:rgba(255,255,255,0.78);font-size:0.75rem;font-weight:800;line-height:1.35;">
+        Bild-Wort-Import: <span style="color:#fff;">en</span>, <span style="color:#fff;">de</span>, <span style="color:#fff;">unit</span>, <span style="color:#fff;">image</span>, <span style="color:#fff;">example</span>, <span style="color:#fff;">exampleTranslation</span>. Bild ist ein Pfad oder eine URL, keine Datei.
       </div>
       <div class="tog-group" style="margin-bottom:10px;">
         <button class="tog active" id="mLatBtn" onclick="setManLang('latin')">Latein</button>
@@ -2126,6 +2130,15 @@ function dbVocabPayload(setId,l,item,withOptional){
   return row;
 }
 function exportVoc(){var v=getV(mLang);var b=new Blob([JSON.stringify(v,null,2)],{type:"application/json"});var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=(cp?profKey(cp)+"_":"")+mLang+"_vokabeln.json";a.click();toast("Exportiert!");}
+function downloadImportTemplate(){
+  var sample=[
+    {en:"banana",de:"die Banane",unit:1,image:"vocab-images/banana.png",example:"The banana is yellow.",exampleTranslation:"Die Banane ist gelb.",difficulty:1,wordType:"noun"},
+    {en:"train",de:"der Zug",unit:1,image:"https://example.com/train.png",example:"The train is fast.",exampleTranslation:"Der Zug ist schnell.",difficulty:1,wordType:"noun"}
+  ];
+  var b=new Blob([JSON.stringify(sample,null,2)],{type:"application/json"});
+  var a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="bild-wort-import-vorlage.json";a.click();
+  toast("Import-Vorlage geladen");
+}
 function resetVoc(){if(confirm("Profil-Vokabeln zur\u00fccksetzen? Standard- oder Klassen-Vokabeln bleiben erhalten.")){try{var k=profileVocabKey(mLang);if(k)localStorage.removeItem(k);}catch(e){}if(cp&&cp.vocabSets)cp.vocabSets[mLang]="";saveCP();renderManage();updUnitSel();toast("Profil-Vokabeln zur\u00fcckgesetzt!");}}
 
 
