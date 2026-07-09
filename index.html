@@ -432,7 +432,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
           <span class="wc-xp-txt" id="xpTxt">0 XP</span>
         </div>
         <div class="wc-weekly">&#x23F1; WOCHENZIEL: <span id="wkTxt">0 / 120 Min</span></div>
-        <div class="wc-learn" id="learnProgressTxt">&#x1F4D6; GELERNT: 0 W&#246;rter</div>
+        <div class="wc-learn" id="learnProgressTxt">&#x1F4D6; Bilder-Englisch: 0 gelernt</div>
       </div>
       <div class="cfg-card">
         <div class="cfg-section">
@@ -1521,7 +1521,7 @@ function countKnownLearnStats(lang){
 function updLearnProgressSummary(){
   var el=document.getElementById("learnProgressTxt");if(!el||!cp)return;
   var n=countKnownLearnStats(cLang);
-  var label=cLang==="latin"?"Latein":"Englisch";
+  var label=cLang==="latin"?"Bilder-Latein":"Bilder-Englisch";
   el.textContent="\uD83D\uDCD6 "+label+": "+n+" gelernt";
 }
 function updDirBtns(){
