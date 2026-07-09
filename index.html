@@ -218,7 +218,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
 .learn-summary-stat{background:rgba(255,255,255,0.08);border-radius:10px;padding:10px 8px;}
 .learn-summary-val{font-size:1.4rem;font-weight:900;color:var(--orange);}
 .learn-summary-lbl{font-size:0.7rem;font-weight:800;color:rgba(255,255,255,0.55);}
-.learn-summary-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;}
+.learn-summary-actions{display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px;}
 .learn-menu-scroll{flex:1;overflow-y:auto;background:var(--bg2);}
 .learn-menu-wrap{padding:18px 14px 90px;max-width:680px;margin:0 auto;}
 .learn-menu-title{font-size:1.45rem;font-weight:900;color:#fff;margin:10px 0 4px;}
@@ -567,6 +567,7 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
       </div>
       <div class="learn-summary-actions">
         <button class="btn btn-teal" id="lRepeatErrBtn" onclick="restartLearnErrors()">Fehler weiter &#252;ben</button>
+        <button class="btn btn-teal" id="lNewImageBtn" onclick="restartImageLearn()">Neue Bildrunde</button>
         <button class="btn btn-ghost" onclick="goHome()">Fertig</button>
       </div>
     </div>
@@ -1789,6 +1790,7 @@ function showLC(){
   document.getElementById("lTrans").classList.remove("show");
   document.getElementById("lActions").classList.remove("show");
   document.getElementById("lNum").textContent=ls.idx+1;
+  document.getElementById("lTot").textContent=ls.cards.length;
   document.getElementById("lCount").textContent=(ls.idx+1)+" von "+ls.cards.length+" Karten \u00B7 Kann ich: "+(ls.known||0)+" \u00B7 Nochmal: "+(ls.again||0);
   setLearnProgressPill(c);
   ls.rev=false;
@@ -1831,9 +1833,16 @@ function finishLearn(){
   document.getElementById("lKnownSum").textContent=ls.known||0;
   document.getElementById("lAgainSum").textContent=ls.again||0;
   var rem=countErrors();
-  document.getElementById("lSummaryTitle").textContent=ls.type==="errors"?"Fehlertraining fertig":"Karteikarten fertig";
-  document.getElementById("lSummaryText").textContent=(ls.known||0)+" geschafft \u00B7 "+(ls.again||0)+" nochmal \u00fcben \u00B7 "+rem+" Fehler offen";
-  document.getElementById("lRepeatErrBtn").style.display=rem>0?"":"none";
+  var title=ls.type==="errors"?"Fehlertraining fertig":"Karteikarten fertig";
+  var text=(ls.known||0)+" geschafft \u00B7 "+(ls.again||0)+" nochmal \u00fcben \u00B7 "+rem+" Fehler offen";
+  if(ls.type==="image"){
+    title="Bild-Wort fertig";
+    text=(ls.known||0)+" Bilder erkannt \u00B7 "+(ls.again||0)+" nochmal \u00fcben \u00B7 "+countKnownLearnStats(cLang)+" Bild-W\u00f6rter insgesamt gelernt";
+  }
+  document.getElementById("lSummaryTitle").textContent=title;
+  document.getElementById("lSummaryText").textContent=text;
+  document.getElementById("lRepeatErrBtn").style.display=(ls.type!=="image"&&rem>0)?"":"none";
+  var imgBtn=document.getElementById("lNewImageBtn");if(imgBtn)imgBtn.style.display=ls.type==="image"?"":"none";
   document.getElementById("lSummary").classList.add("show");
   toast("Lernen fertig! \uD83C\uDFC6");
 }
@@ -1845,6 +1854,12 @@ function restartLearnErrors(){
   var ev=getErrorCards();
   if(ev.length===0){toast("Keine Fehler mehr offen");goHome();return;}
   startLearn(ev,"errors");
+}
+function restartImageLearn(){
+  if(!learnPool||learnPool.length===0)learnPool=getFilt();
+  var imgCards=getImageLearnCards(learnPool);
+  if(imgCards.length===0){toast(getImageNoCardsMessage());return;}
+  startLearn(imgCards,"image");
 }
 
 function endRound(){
