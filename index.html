@@ -1531,11 +1531,38 @@ function countKnownLearnStats(lang){
   }
   return n;
 }
+function getImageProgressCards(lang){
+  var l=lang||cLang;
+  var cards=getImageCards(getV(l));
+  if(cards.length===0&&l==="english")cards=getFallbackImageCards();
+  return cards;
+}
+function countImageProgressTotal(lang){
+  var l=lang||cLang;var cards=getImageProgressCards(l);var seen={};var n=0;
+  for(var i=0;i<cards.length;i++){
+    var k=l+"|"+String(cards[i].en||"");
+    if(cards[i].en&&!seen[k]){seen[k]=true;n++;}
+  }
+  return n;
+}
+function countKnownImageStats(lang){
+  if(!cp||!cp.learnStats)return 0;
+  var l=lang||cLang;var cards=getImageProgressCards(l);var seen={};var n=0;
+  for(var i=0;i<cards.length;i++){
+    var k=l+"|"+String(cards[i].en||"");
+    if(!cards[i].en||seen[k])continue;
+    seen[k]=true;
+    var s=cp.learnStats[k];
+    if(s&&(s.knownCount||0)>0)n++;
+  }
+  return n;
+}
 function updLearnProgressSummary(){
   var el=document.getElementById("learnProgressTxt");if(!el||!cp)return;
-  var n=countKnownLearnStats(cLang);
+  var n=countKnownImageStats(cLang);
+  var total=countImageProgressTotal(cLang);
   var label=cLang==="latin"?"Bilder-Latein":"Bilder-Englisch";
-  el.textContent="\uD83D\uDCD6 "+label+": "+n+" gelernt";
+  el.textContent="\uD83D\uDCD6 "+label+": "+n+(total>0?" / "+total:"")+" gelernt";
 }
 function updDirBtns(){
   var la=cLang==="latin";
@@ -1878,7 +1905,7 @@ function finishLearn(){
   var text=(ls.known||0)+" geschafft \u00B7 "+(ls.again||0)+" nochmal \u00fcben \u00B7 "+rem+" Fehler offen";
   if(ls.type==="image"){
     title="Bild-Wort fertig";
-    text=(ls.known||0)+" Bilder erkannt \u00B7 "+(ls.again||0)+" nochmal \u00fcben \u00B7 "+countKnownLearnStats(cLang)+" Bild-W\u00f6rter insgesamt gelernt";
+    text=(ls.known||0)+" Bilder erkannt \u00B7 "+(ls.again||0)+" nochmal \u00fcben \u00B7 "+countKnownImageStats(cLang)+" Bildw\u00f6rter insgesamt gelernt";
   }
   document.getElementById("lSummaryTitle").textContent=title;
   document.getElementById("lSummaryText").textContent=text;
