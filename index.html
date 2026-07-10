@@ -547,7 +547,10 @@ body{font-family:'Nunito',Arial,sans-serif;background:var(--bg);color:var(--text
   <div class="learn-topbar">
     <div style="font-weight:900;color:var(--text);font-size:0.95rem;"><span id="lNum">1</span> / <span id="lTot">20</span></div>
     <div style="font-size:0.8rem;font-weight:800;color:var(--text3);" id="lDir">LA &#x2192; DE</div>
-    <button class="btn btn-ghost-dark btn-sm" onclick="doCancel()">&#x2715; Abbrechen</button>
+    <div style="display:flex;gap:6px;align-items:center;">
+      <button class="btn btn-teal btn-sm" onclick="finishLearn()">Fertig</button>
+      <button class="btn btn-ghost-dark btn-sm" onclick="doCancel()">&#x2715; Abbrechen</button>
+    </div>
   </div>
   <div class="learn-body">
     <div class="learn-card" id="learnCard" onclick="toggleLearn()">
