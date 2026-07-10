@@ -1894,8 +1894,8 @@ function restartLearnErrors(){
   startLearn(ev,"errors");
 }
 function restartImageLearn(){
-  if(!learnPool||learnPool.length===0)learnPool=getFilt();
-  var imgCards=getImageLearnCards(learnPool);
+  var imgBase=getFilt();
+  var imgCards=getImageLearnCards(imgBase);
   if(imgCards.length===0){toast(getImageNoCardsMessage());return;}
   startLearn(imgCards,"image");
 }
