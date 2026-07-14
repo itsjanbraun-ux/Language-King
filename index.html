@@ -978,7 +978,7 @@ function isVocabOptionalColumnError(err){
 function mapDbProfToLocal(r){
   var old=findLocalProf(r.id,r.name);
   var dbPin=r.pin!==undefined&&r.pin!==null?r.pin:(old&&old.pin?old.pin:"");
-  return{name:r.name||"",cls:r.class_level||"6",xp:r.xp||0,pin:dbPin,avatar:r.avatar||(old&&old.avatar?old.avatar:""),vocabSets:{latin:r.latin_vocab_set_id||(old&&old.vocabSets?old.vocabSets.latin:"")||"",english:r.english_vocab_set_id||(old&&old.vocabSets?old.vocabSets.english:"")||""},history:old&&old.history?old.history:[],errors:old&&old.errors?old.errors:{latin:{},english:{}},learnStats:old&&old.learnStats?old.learnStats:{},weeklyMin:old&&old.weeklyMin?old.weeklyMin:0,weekStart:old&&old.weekStart?old.weekStart:wkStart(),_dbid:r.id,_uid:r.user_id||null};
+  return{name:r.name||"",cls:r.class_level||"6",xp:r.xp||0,pin:dbPin,avatar:r.avatar||(old&&old.avatar?old.avatar:""),vocabSets:{latin:r.latin_vocab_set_id||(old&&old.vocabSets?old.vocabSets.latin:"")||"",english:r.english_vocab_set_id||(old&&old.vocabSets?old.vocabSets.english:"")||""},history:old&&old.history?old.history:[],errors:old&&old.errors?old.errors:{latin:{},english:{}},learnStats:{},weeklyMin:old&&old.weeklyMin?old.weeklyMin:0,weekStart:old&&old.weekStart?old.weekStart:wkStart(),_dbid:r.id,_uid:r.user_id||null};
 }
 function findLocalProf(id,name){
   for(var i=0;i<profs.length;i++){
