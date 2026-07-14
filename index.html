@@ -987,6 +987,18 @@ function findLocalProf(id,name){
   }
   return null;
 }
+function syncCurrentProfileAfterLoad(){
+  if(!cp)return;
+  var next=null;var idx=-1;
+  for(var i=0;i<profs.length;i++){
+    if(cp._dbid&&profs[i]._dbid===cp._dbid){next=profs[i];idx=i;break;}
+    if(!cp._dbid&&cp.name&&profs[i].name===cp.name){next=profs[i];idx=i;}
+  }
+  if(next){
+    cp=next;cp._i=idx;
+    updHome();
+  }
+}
 function loadProfilesFromDB(cb){
   if(!sbReady()){if(cb)cb(false);return;}
   loadProfilesQuery("id,user_id,name,class_level,xp,pin,avatar,latin_vocab_set_id,english_vocab_set_id",true,cb);
@@ -1005,7 +1017,7 @@ function loadProfilesQuery(cols,allowAvatarFallback,cb){
     var next=[];for(var i=0;i<rows.length;i++)next.push(mapDbProfToLocal(rows[i]));
     PROFILE_LOAD_MSG="";
     loadLearnStatsFromDB(next,function(){
-      profs=next;saveP();renderP();if(cb)cb(true);
+      profs=next;syncCurrentProfileAfterLoad();saveP();renderP();if(cb)cb(true);
     });
   });
 }
