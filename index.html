@@ -1103,7 +1103,7 @@ function loadLearnStatsFromDB(list,cb){
       else console.log("SB load learn stats error",res.error);
       if(cb)cb(false);return;
     }
-    var byId={};for(var p=0;p<list.length;p++){byId[list[p]._dbid]=list[p];if(!list[p].learnStats)list[p].learnStats={};}
+    var byId={};for(var p=0;p<list.length;p++){byId[list[p]._dbid]=list[p];list[p].learnStats={};}
     var rows=res.data||[];
     for(var j=0;j<rows.length;j++){
       var r=rows[j];var prof=byId[r.profile_id];if(!prof)continue;
