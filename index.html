@@ -1199,7 +1199,7 @@ function renderHistoryV2(h){
 
 // ===== PIN SYSTEM =====
 var pinBuffer="";var pinTarget=null;var pinMode="enter"; // "enter" or "set"
-var delProfConfirm=null;
+var delProfConfirm=null;var learnResetConfirm=null;
 
 function profAvatar(p,i){
   if(p&&p.avatar)return p.avatar;
@@ -1346,6 +1346,7 @@ function buildAdminHtml(){
     h+='<div class="admin-prof-btns">';
     h+='<button class="btn btn-ghost btn-sm" onclick="cycleProfAvatar('+i+')">&#x1F464; Avatar</button>';
     h+='<button class="btn btn-teal btn-sm" onclick="resetProfPin('+i+')">&#x1F504; PIN zur&#x00FC;cksetzen</button>';
+    h+='<button class="btn '+(learnResetConfirm===i?"btn-red":"btn-ghost")+' btn-sm" onclick="resetProfLearnStats('+i+')">'+(learnResetConfirm===i?"Lernstand wirklich reset?":"&#x21BB; Lernstand reset")+'</button>';
     h+='<button class="btn '+(delProfConfirm===i?"btn-red":"btn-ghost")+' btn-sm" onclick="deleteProf('+i+')">'+(delProfConfirm===i?"Wirklich l&#x00F6;schen?":"&#x1F5D1; L&#x00F6;schen")+'</button>';
     h+='</div></div>';
   }
@@ -1358,14 +1359,14 @@ function renderAdmin(){
 }
 
 function resetProfPin(i){if(!needParentAuth())return;
-  delProfConfirm=null;
+  delProfConfirm=null;learnResetConfirm=null;
   profs[i].pin="";saveP();saveProfToDB(profs[i]);
   toast(esc(profs[i].name)+": PIN zur\u00FCckgesetzt");
   renderAdmin();
 }
 
 function setProfClass(i,v){if(!needParentAuth())return;
-  delProfConfirm=null;
+  delProfConfirm=null;learnResetConfirm=null;
   profs[i].cls=String(v);
   if(cp&&cp._i===i)cp.cls=profs[i].cls;
   saveP();saveProfToDB(profs[i]);renderAdmin();renderP();
@@ -1374,7 +1375,7 @@ function setProfClass(i,v){if(!needParentAuth())return;
 }
 
 function cycleProfAvatar(i){if(!needParentAuth())return;
-  delProfConfirm=null;
+  delProfConfirm=null;learnResetConfirm=null;
   var p=profs[i];var cur=p.avatar||profAvatar(p,i);var n=0;
   for(var a=0;a<AVATARS.length;a++){if(AVATARS[a].id===cur){n=a+1;break;}}
   p.avatar=AVATARS[n%AVATARS.length].id;
@@ -1382,11 +1383,38 @@ function cycleProfAvatar(i){if(!needParentAuth())return;
   saveP();saveProfToDB(p);renderAdmin();renderP();
 }
 
+function clearLocalLearnStats(i){
+  if(!profs[i])return;
+  profs[i].learnStats={};
+  if(cp&&((cp._dbid&&profs[i]._dbid&&cp._dbid===profs[i]._dbid)||cp._i===i)){
+    cp.learnStats={};cp._i=i;
+    updHome();
+  }
+  saveP();
+}
+function resetProfLearnStats(i){if(!needParentAuth())return;
+  delProfConfirm=null;
+  if(learnResetConfirm!==i){learnResetConfirm=i;renderAdmin();return;}
+  learnResetConfirm=null;
+  var p=profs[i];if(!p)return;
+  clearLocalLearnStats(i);
+  if(sbReady()&&p._dbid){
+    sb.from("profile_word_stats").delete().eq("profile_id",p._dbid).then(function(res){
+      if(res.error){console.log("SB reset learn stats error",res.error);toast("Lernstand lokal zur\u00FCckgesetzt, Supabase nicht");return;}
+      loadProfilesFromDB(function(){renderAdmin();});
+      toast("Lernfortschritt zur\u00FCckgesetzt");
+    });
+  }else{
+    renderAdmin();
+    toast("Lernfortschritt lokal zur\u00FCckgesetzt");
+  }
+}
+
 function deleteProf(i){if(!needParentAuth())return;
   if(delProfConfirm===i){
     var wasCurrent=cp&&cp._i===i;
     delProfFromDB(profs[i]);profs.splice(i,1);
-    delProfConfirm=null;
+    delProfConfirm=null;learnResetConfirm=null;
     if(wasCurrent){
       cp=null;
       document.getElementById("botNav").style.display="none";
@@ -1397,7 +1425,7 @@ function deleteProf(i){if(!needParentAuth())return;
     toast("Profil gel\u00F6scht");
     renderAdmin();renderP();
   }else{
-    delProfConfirm=i;
+    delProfConfirm=i;learnResetConfirm=null;
     renderAdmin();
   }
 }
